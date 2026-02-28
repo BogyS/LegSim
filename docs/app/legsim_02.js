@@ -240,27 +240,34 @@
     const left = DATA.left;
     const right = DATA.right;
 
-    ctx.strokeStyle = "#1564a6";
     ctx.lineWidth = 4;
+    ctx.strokeStyle = "#1564a6";
     ctx.beginPath();
     ctx.moveTo(mapX(hx), mapY(hy));
     ctx.lineTo(mapX(left.kx[i]), mapY(left.ky[i]));
+    ctx.stroke();
+
+    ctx.strokeStyle = "#c06030";
+    ctx.beginPath();
+    ctx.moveTo(mapX(left.kx[i]), mapY(left.ky[i]));
     ctx.lineTo(mapX(left.ax[i]), mapY(left.ay[i]));
     ctx.stroke();
 
+    ctx.strokeStyle = "#1a1a1a";
     ctx.beginPath();
     ctx.moveTo(mapX(hx), mapY(hy));
     ctx.lineTo(mapX(right.kx[i]), mapY(right.ky[i]));
     ctx.lineTo(mapX(right.ax[i]), mapY(right.ay[i]));
     ctx.stroke();
 
-    ctx.strokeStyle = "#0f4a7a";
     ctx.lineWidth = 3;
+    ctx.strokeStyle = "#2b7a4b";
     ctx.beginPath();
     ctx.moveTo(mapX(left.hx[i]), mapY(left.hy[i]));
     ctx.lineTo(mapX(left.tx[i]), mapY(left.ty[i]));
     ctx.stroke();
 
+    ctx.strokeStyle = "#1a1a1a";
     ctx.beginPath();
     ctx.moveTo(mapX(right.hx[i]), mapY(right.hy[i]));
     ctx.lineTo(mapX(right.tx[i]), mapY(right.ty[i]));
@@ -273,8 +280,11 @@
       ctx.fill();
     };
     dot(hx, hy);
+    ctx.fillStyle = "#c06030";
     dot(left.kx[i], left.ky[i]);
+    ctx.fillStyle = "#2b7a4b";
     dot(left.ax[i], left.ay[i]);
+    ctx.fillStyle = "#1a1a1a";
     dot(right.kx[i], right.ky[i]);
     dot(right.ax[i], right.ay[i]);
 
