@@ -162,11 +162,7 @@
       const angles = gaitAngles(phase);
       const hipFlex = angles.hip;
       const kneeFlex = angles.knee;
-      let ankleRel = angles.ankle;
-
-      if ((moveForward && isLeft) || (!moveForward && !isLeft)) {
-        ankleRel = -ankleRel;
-      }
+      const ankleRel = angles.ankle;
       
 
       const q1i = (hipFlex - 90) * (Math.PI / 180);
