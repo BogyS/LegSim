@@ -162,7 +162,12 @@
     const tx = new Array(N);
     const ty = new Array(N);
 
-    let footOffset = 0;
+    const refPhase = moveForward ? 0.5 : 0.0;
+    const refAngles = gaitAngles((refPhase + offset) % 1.0);
+    const refQ1 = (refAngles.hip - 90) * (Math.PI / 180);
+    const refQ2 = refAngles.knee * (Math.PI / 180);
+    const refQ3 = refAngles.ankle * (Math.PI / 180);
+    const footOffset = -(refQ1 + refQ2 + refQ3);
     for (let i = 0; i < N; i += 1) {
       const phase = ((T_ARR[i] / T) + offset) % 1.0;
       const angles = gaitAngles(phase);
@@ -174,10 +179,6 @@
       const q1i = (hipFlex - 90) * (Math.PI / 180);
       const q2i = kneeFlex * (Math.PI / 180);
       let q3i = ankleRel * (Math.PI / 180);
-
-      if (i === 0) {
-        footOffset = -(q1i + q2i + q3i);
-      }
       q3i += footOffset;
 
       q1[i] = q1i;
