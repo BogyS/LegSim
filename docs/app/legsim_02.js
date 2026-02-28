@@ -102,7 +102,7 @@
     const hipY = new Array(N);
     const v = stepLen / T;
     for (let i = 0; i < N; i += 1) {
-      hipX[i] = v * (TOTAL_TIME - T_ARR[i]);
+      hipX[i] = directionLabelForward ? (v * T_ARR[i]) : (v * (TOTAL_TIME - T_ARR[i]));
       hipY[i] = hipHeight;
     }
 
@@ -148,9 +148,9 @@
     for (let i = 0; i < N; i += 1) {
       const phase = ((T_ARR[i] / T) + offset) % 1.0;
       const angles = gaitAngles(phase);
-      const hipFlex = -angles.hip;
-      const kneeFlex = -angles.knee;
-      const ankleRel = angles.ankle;
+      const hipFlex = directionLabelForward ? angles.hip : -angles.hip;
+      const kneeFlex = directionLabelForward ? angles.knee : -angles.knee;
+      const ankleRel = directionLabelForward ? -angles.ankle : angles.ankle;
 
       const q1i = (hipFlex - 90) * (Math.PI / 180);
       const q2i = kneeFlex * (Math.PI / 180);
@@ -414,6 +414,7 @@
   elements.directionBtn.addEventListener("click", () => {
     directionLabelForward = !directionLabelForward;
     elements.directionBtn.textContent = directionLabelForward ? "Forwards" : "Backwards";
+    recomputeAll();
     render();
   });
 
