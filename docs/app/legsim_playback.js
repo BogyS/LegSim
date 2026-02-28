@@ -243,13 +243,6 @@
     ctx.fillStyle = "#fbfaf8";
     ctx.fillRect(0, 0, w, h);
 
-    ctx.strokeStyle = "#d9cbb7";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(20, h - 60);
-    ctx.lineTo(w - 20, h - 60);
-    ctx.stroke();
-
     if (!state.t || !state.frameIndices || !state.q1) {
       ctx.fillStyle = "#9a8f82";
       ctx.font = "16px Manrope, sans-serif";
@@ -288,6 +281,14 @@
 
     const mapX = (x) => (x - worldMinX) * scaleX;
     const mapY = (y) => h - (y - worldMinY) * scaleY;
+
+    ctx.strokeStyle = "#d9cbb7";
+    ctx.lineWidth = 2;
+    const groundY = mapY(0);
+    ctx.beginPath();
+    ctx.moveTo(20, groundY);
+    ctx.lineTo(w - 20, groundY);
+    ctx.stroke();
 
     ctx.lineWidth = 4;
     ctx.strokeStyle = "#1564a6";

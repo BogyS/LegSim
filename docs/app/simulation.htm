@@ -12,28 +12,86 @@
   <main class="app">
     <header class="hero">
       <div class="hero-text">
-        <p class="kicker">Simulation</p>
-        <h1>Interactive Gait Simulation</h1>
-        <p class="subhead">
-          This section will host the two-leg gait generator with adjustable parameters.
-        </p>
-        <div class="hero-actions">
-          <a class="chip" href="../index.htm">Home</a>
-          <a class="chip" href="playback.htm">Playback</a>
-          <a class="chip" href="setup.htm">Setup</a>
-        </div>
-      </div>
-      <div class="hero-media">
-        <img src="../img/LegSk.jpg" alt="Two-leg exoskeleton schematic" />
+        <h2>Interactive Gait Simulation</h2>
       </div>
     </header>
 
-    <section class="card">
-      <h2>Coming soon</h2>
-      <p class="subhead">
-        Define the simulation requirements and I will build the interactive controls and visualization here.
-      </p>
+    <section class="controls card">
+      <div class="control-group">
+        <label for="sim-step-len">Step length (m)</label>
+        <div class="slider-row">
+          <input id="sim-step-len" type="range" min="0.45" max="0.9" step="0.01" />
+          <span id="sim-step-len-val" class="value-badge"></span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label for="sim-stance-ratio">Stance ratio</label>
+        <div class="slider-row">
+          <input id="sim-stance-ratio" type="range" min="0.5" max="0.7" step="0.005" />
+          <span id="sim-stance-ratio-val" class="value-badge"></span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label for="sim-hip-height">Hip height (m)</label>
+        <div class="slider-row">
+          <input id="sim-hip-height" type="range" min="0.85" max="1.0" step="0.005" />
+          <span id="sim-hip-height-val" class="value-badge"></span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label for="sim-clearance">Swing clearance (m)</label>
+        <div class="slider-row">
+          <input id="sim-clearance" type="range" min="0.03" max="0.14" step="0.005" />
+          <span id="sim-clearance-val" class="value-badge"></span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label for="sim-toe-up">Toe up (deg)</label>
+        <div class="slider-row">
+          <input id="sim-toe-up" type="range" min="0" max="20" step="0.5" />
+          <span id="sim-toe-up-val" class="value-badge"></span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label for="sim-push-off">Push off (deg)</label>
+        <div class="slider-row">
+          <input id="sim-push-off" type="range" min="0" max="25" step="0.5" />
+          <span id="sim-push-off-val" class="value-badge"></span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <div class="button-row">
+          <button id="sim-pause" type="button">Pause</button>
+          <button id="sim-reset" type="button">Reset</button>
+          <a class="chip" href="../index.htm">Home</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="plots">
+      <div class="card plot-card">
+        <header>
+          <h2>Walking View</h2>
+          <p>Two-leg motion with fixed world axes.</p>
+        </header>
+        <canvas id="sim-walk-canvas" width="900" height="520"></canvas>
+      </div>
+      <div class="card plot-card">
+        <header>
+          <h2>Left Leg Angles</h2>
+          <p>Three centered angle tracks with a shared time cursor.</p>
+        </header>
+        <canvas id="sim-angle-canvas" width="520" height="520"></canvas>
+      </div>
     </section>
   </main>
+
+  <script src="legsim_01.js"></script>
 </body>
 </html>
