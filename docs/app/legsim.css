@@ -1,0 +1,208 @@
+:root {
+  color-scheme: light;
+  --bg: #f4f1ec;
+  --surface: #fff8ef;
+  --ink: #1a1a1a;
+  --muted: #5c5c5c;
+  --accent: #1463a8;
+  --accent-dark: #0f4a7a;
+  --warm: #f3d3b0;
+  --border: #e6d8c8;
+  --shadow: 0 12px 30px rgba(23, 22, 20, 0.12);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Manrope", "Avenir Next", "Segoe UI", sans-serif;
+  background: radial-gradient(circle at 10% 20%, #fff6e7 0%, #f4f1ec 45%, #e8e1d6 100%);
+  color: var(--ink);
+}
+
+.app {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px 48px;
+  display: grid;
+  gap: 28px;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 24px;
+  align-items: center;
+}
+
+.hero-text h1 {
+  font-size: clamp(1.8rem, 2.6vw, 3rem);
+  margin: 8px 0 12px;
+}
+
+.hero-text .kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-weight: 700;
+  color: var(--accent-dark);
+  margin: 0;
+}
+
+.hero-text .subhead {
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.5;
+  margin: 0 0 16px;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.hero-media {
+  background: linear-gradient(135deg, #f8e7d2, #f0cfa6);
+  padding: 18px;
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  display: grid;
+  place-items: center;
+}
+
+.hero-media img {
+  width: 100%;
+  max-width: 220px;
+}
+
+.chip {
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 600;
+  text-decoration: none;
+  background: #ffffff;
+}
+
+.chip.muted {
+  border-color: var(--border);
+  color: var(--muted);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 18px;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.control-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.control-group select,
+.control-group input[type="file"],
+.control-group button {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #fff;
+}
+
+.control-group button {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.control-group button:hover {
+  background: var(--accent-dark);
+}
+
+.button-row {
+  display: flex;
+  gap: 10px;
+}
+
+.button-row button {
+  flex: 1;
+}
+
+.checkbox-row {
+  display: grid;
+  gap: 8px;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.checkbox-row input {
+  margin-right: 8px;
+}
+
+.control-group.wide {
+  grid-column: 1 / -1;
+}
+
+.status {
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #fff;
+  border: 1px dashed var(--border);
+  color: var(--muted);
+  min-height: 44px;
+}
+
+.plots {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 20px;
+}
+
+.plot-card header {
+  margin-bottom: 12px;
+}
+
+.plot-card h2 {
+  margin: 0 0 4px;
+}
+
+.plot-card p {
+  margin: 0;
+  color: var(--muted);
+}
+
+canvas {
+  width: 100%;
+  height: auto;
+  background: #fbfaf8;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+}
+
+@media (max-width: 980px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .plots {
+    grid-template-columns: 1fr;
+  }
+}

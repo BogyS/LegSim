@@ -1,45 +1,91 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="color-scheme" content="light dark" />
-  <title>Leg Skel</title>
-  <!--Pico - Minimal CSS Framework for semantic info: HTML https://picocss.com/ -->
-  <link rel="stylesheet" type="text/css" href="app/pico.classless.blue.css">
+  <meta name="color-scheme" content="light" />
+  <title>LegSim Playback</title>
+  <link rel="icon" href="favicon.ico" />
+  <link rel="stylesheet" href="app/legsim.css" />
 </head>
-
 <body>
-  <!-- Main -->
-  <main class="container">
-    <section id="LegSk">
-      <h2>Leg Skel</h2>
+  <main class="app">
+    <header class="hero">
+      <div class="hero-text">
+        <p class="kicker">LegSim</p>
+        <h1>CSV Playback for Two-Leg Exoskeleton Kinematics</h1>
+        <p class="subhead">
+          Load angular velocity CSVs, integrate to joint angles, and inspect motion with synchronized plots.
+        </p>
+        <div class="hero-actions">
+          <a class="chip" href="app/setup.htm">Setup</a>
+          <span class="chip muted">No MP4 recording</span>
+        </div>
+      </div>
+      <div class="hero-media">
+        <img src="img/LegSk.jpg" alt="Two-leg exoskeleton schematic" />
+      </div>
+    </header>
+
+    <section class="controls card">
+      <div class="control-group">
+        <label for="dataset">Dataset (docs/data/csv)</label>
+        <select id="dataset">
+          <option value="">Select a dataset...</option>
+          <option value="data/csv/1.3 ANSYS ANGULAR VELOCITY.csv">1.3 ANSYS ANGULAR VELOCITY</option>
+          <option value="data/csv/2.1 Equivalent Moment and Angular velocity.csv">2.1 Equivalent Moment and Angular velocity</option>
+          <option value="data/csv/4.3 ANGULAR VELOCITY.csv">4.3 ANGULAR VELOCITY</option>
+        </select>
+        <button id="load-dataset" type="button">Load Dataset</button>
+      </div>
+
+      <div class="control-group">
+        <label for="file-input">Load local CSV/TSV</label>
+        <input id="file-input" type="file" accept=".csv,.tsv,.txt" />
+        <button id="load-file" type="button">Load File</button>
+      </div>
+
+      <div class="control-group">
+        <label>Playback</label>
+        <div class="button-row">
+          <button id="pause-btn" type="button">Pause</button>
+          <button id="reset-btn" type="button">Reset</button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Direction</label>
+        <div class="checkbox-row">
+          <label><input type="checkbox" id="flip-hip" /> Flip hip</label>
+          <label><input type="checkbox" id="flip-knee" /> Flip knee</label>
+          <label><input type="checkbox" id="flip-ankle" /> Flip ankle</label>
+        </div>
+      </div>
+
+      <div class="control-group wide">
+        <label>Status</label>
+        <div id="status" class="status">Load a dataset or a local file to begin.</div>
+      </div>
     </section>
-    <hr />
-    <section id="LegSkInfo">
-      <table>
-        <tr>
-          <td><span id="info" style="text-align:center;"></span></td>
-          <td><img src="img/LegSk.jpg" /></td>
-        </tr>
-      </table>
-    </section>
-    <section id="Menu">
-      <nav>
-        <ul>
-          <li><a href="app/setup.htm">Setup</a></li>
-        </ul>
-      </nav>
-    </section>
-    <section>
-      <pre id="msg"></pre>
+
+    <section class="plots">
+      <div class="card plot-card">
+        <header>
+          <h2>Motion View</h2>
+          <p>2D leg + torso animation (fixed world frame).</p>
+        </header>
+        <canvas id="walk-canvas" width="900" height="520"></canvas>
+      </div>
+      <div class="card plot-card">
+        <header>
+          <h2>Joint Angles</h2>
+          <p>Three centered curves with synchronized cursor.</p>
+        </header>
+        <canvas id="angle-canvas" width="520" height="520"></canvas>
+      </div>
     </section>
   </main>
 
-  <script type="text/javascript">
-  </script>
-
+  <script src="app/legsim.js"></script>
 </body>
-
 </html>
