@@ -42,7 +42,6 @@
   let paused = false;
   let frame = 0;
   let lastTick = 0;
-  let reverseX = false;
   let directionLabelForward = false;
 
   const GAIT_KEYS = [
@@ -211,10 +210,7 @@
     }
 
     const i = frame;
-    const mapX = (x) => {
-      const t = (x - DATA.minX) / (DATA.maxX - DATA.minX);
-      return (reverseX ? (1 - t) : t) * w;
-    };
+    const mapX = (x) => (x - DATA.minX) * (w / (DATA.maxX - DATA.minX));
     const mapY = (y) => h - (y - DATA.minY) * (h / (DATA.maxY - DATA.minY));
 
     ctx.strokeStyle = "#d9cbb7";
@@ -418,7 +414,6 @@
   elements.directionBtn.addEventListener("click", () => {
     directionLabelForward = !directionLabelForward;
     elements.directionBtn.textContent = directionLabelForward ? "Forwards" : "Backwards";
-    reverseX = !directionLabelForward;
     render();
   });
 
@@ -426,7 +421,6 @@
   bindSlider(elements.stepLen, "step_len");
 
   directionLabelForward = elements.directionBtn.textContent.trim().toLowerCase() === "forwards";
-  reverseX = !directionLabelForward;
   resetDefaults();
   render();
   window.addEventListener("resize", render);
