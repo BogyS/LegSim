@@ -102,7 +102,7 @@
     const hipY = new Array(N);
     const v = stepLen / T;
     for (let i = 0; i < N; i += 1) {
-      hipX[i] = v * T_ARR[i];
+      hipX[i] = v * (TOTAL_TIME - T_ARR[i]);
       hipY[i] = hipHeight;
     }
 
