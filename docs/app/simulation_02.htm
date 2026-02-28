@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light" />
+  <title>LegSim Simulation 02</title>
+  <link rel="icon" href="../favicon.ico" />
+  <link rel="stylesheet" href="legsim.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="hero">
+      <div class="hero-text">
+        <h2>Interactive Gait Simulation 02</h2>
+        <p class="subhead">
+          Phase-based gait curves with joint ranges inspired by clinical gait references.
+        </p>
+      </div>
+    </header>
+
+    <section class="controls card">
+      <div class="control-group">
+        <label for="sim-step-len">Step length (m)</label>
+        <div class="slider-row">
+          <input id="sim-step-len" type="range" min="0.45" max="0.9" step="0.01" />
+          <span id="sim-step-len-val" class="value-badge"></span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label for="sim-hip-height">Hip height (m)</label>
+        <div class="slider-row">
+          <input id="sim-hip-height" type="range" min="0.85" max="1.0" step="0.005" />
+          <span id="sim-hip-height-val" class="value-badge"></span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Playback</label>
+        <div class="button-row">
+          <button id="sim-pause" type="button">Pause</button>
+          <button id="sim-reset" type="button">Reset</button>
+          <a class="chip" href="../index.htm">Home</a>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Walking Direction</label>
+        <div class="button-row">
+          <button id="sim-direction" type="button">Left → Right</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="plots">
+      <div class="card plot-card">
+        <header>
+          <h2>Walking View</h2>
+          <p>Two-leg motion with fixed world axes.</p>
+        </header>
+        <canvas id="sim-walk-canvas" width="900" height="520"></canvas>
+      </div>
+      <div class="card plot-card">
+        <header>
+          <h2>Left Leg Angles</h2>
+          <p>Three centered angle tracks with a shared time cursor.</p>
+        </header>
+        <canvas id="sim-angle-canvas" width="520" height="520"></canvas>
+      </div>
+    </section>
+  </main>
+
+  <script src="legsim_02.js"></script>
+</body>
+</html>

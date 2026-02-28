@@ -21,11 +21,6 @@
   const DEFAULTS = {
     hip_height: 0.92,
     step_len: 0.7,
-    clearance: 0.08,
-    stance_ratio: 0.62,
-    toe_up_deg: 12.0,
-    push_off_deg: 12.0,
-    knee_branch: -1.0,
   };
 
   const STATE = { ...DEFAULTS };
@@ -40,16 +35,8 @@
     directionBtn: document.getElementById("sim-direction"),
     hipHeight: document.getElementById("sim-hip-height"),
     stepLen: document.getElementById("sim-step-len"),
-    clearance: document.getElementById("sim-clearance"),
-    stanceRatio: document.getElementById("sim-stance-ratio"),
-    toeUp: document.getElementById("sim-toe-up"),
-    pushOff: document.getElementById("sim-push-off"),
     hipHeightVal: document.getElementById("sim-hip-height-val"),
     stepLenVal: document.getElementById("sim-step-len-val"),
-    clearanceVal: document.getElementById("sim-clearance-val"),
-    stanceRatioVal: document.getElementById("sim-stance-ratio-val"),
-    toeUpVal: document.getElementById("sim-toe-up-val"),
-    pushOffVal: document.getElementById("sim-push-off-val"),
   };
 
   let paused = false;
@@ -57,65 +44,97 @@
   let lastTick = 0;
   let reverseX = false;
 
+  const GAIT_KEYS = [
+    { p: 0.0, hip: 20, knee: 0, ankle: 0 },
+    { p: 0.1, hip: 15, knee: 15, ankle: -5 },
+    { p: 0.3, hip: 5, knee: 5, ankle: 5 },
+    { p: 0.5, hip: -10, knee: 5, ankle: 0 },
+    { p: 0.6, hip: -10, knee: 30, ankle: -20 },
+    { p: 0.73, hip: 20, knee: 60, ankle: -10 },
+    { p: 0.87, hip: 30, knee: 30, ankle: 0 },
+    { p: 1.0, hip: 30, knee: 0, ankle: 0 },
+  ];
+
+  const STANCE_RATIO = 0.6;
+
   function smoothstep(s) {
     const x = Math.max(0, Math.min(1, s));
     return x * x * (3 - 2 * x);
   }
 
-  function clamp(x, lo, hi) {
-    return Math.min(Math.max(x, lo), hi);
+  function lerp(a, b, t) {
+    return a + (b - a) * t;
   }
 
-  function legPhase(time, offset) {
-    return ((time / T) + offset) % 1.0;
-  }
-
-  function buildLegTrajectory(offset, hipX, stanceRatio, stepLen, clearance, toeUp, pushOff) {
-    const ankX = new Array(N).fill(0);
-    const ankY = new Array(N).fill(0);
-    const theta = new Array(N).fill(0);
-
-    let plantedX = hipX[0];
-    let prevInStance = null;
-
-    for (let i = 0; i < N; i += 1) {
-      const ph = legPhase(T_ARR[i], offset);
-      const inStance = ph < stanceRatio;
-
-      if (prevInStance === null) {
-        prevInStance = inStance;
-      }
-
-      if (inStance && !prevInStance) {
-        plantedX = hipX[i] + 0.25 * stepLen;
-      }
-      if (!inStance && prevInStance) {
-        plantedX = hipX[i] - 0.25 * stepLen;
-      }
-      prevInStance = inStance;
-
-      if (inStance) {
-        const s = ph / stanceRatio;
-        ankX[i] = plantedX;
-        ankY[i] = 0.0;
-        const push = smoothstep((s - 0.75) / 0.25);
-        theta[i] = -pushOff * push;
-      } else {
-        const s = (ph - stanceRatio) / (1.0 - stanceRatio);
-        const xTakeoff = plantedX;
-        const xLand = hipX[i] + 0.25 * stepLen;
-        ankX[i] = xTakeoff + (xLand - xTakeoff) * smoothstep(s);
-        ankY[i] = clearance * Math.sin(Math.PI * s);
-        theta[i] = toeUp * Math.sin(Math.PI * s);
-      }
+  function mapPhaseToCanonical(phase) {
+    const stanceRef = 0.6;
+    if (phase <= STANCE_RATIO) {
+      const s = STANCE_RATIO === 0 ? 0 : phase / STANCE_RATIO;
+      return s * stanceRef;
     }
-    return { ankX, ankY, theta };
+    const swingPhase = (phase - STANCE_RATIO) / Math.max(1e-6, 1 - STANCE_RATIO);
+    return stanceRef + swingPhase * (1 - stanceRef);
   }
 
-  function solveLegIK(ankX, ankY, theta, hipX, hipY, kneeBranch) {
+  function gaitAngles(phase) {
+    const canonical = mapPhaseToCanonical(phase);
+    let i = 0;
+    while (i < GAIT_KEYS.length - 1 && GAIT_KEYS[i + 1].p < canonical) {
+      i += 1;
+    }
+    const k0 = GAIT_KEYS[i];
+    const k1 = GAIT_KEYS[Math.min(i + 1, GAIT_KEYS.length - 1)];
+    const span = Math.max(1e-6, k1.p - k0.p);
+    const t = smoothstep((canonical - k0.p) / span);
+
+    let hip = lerp(k0.hip, k1.hip, t);
+    let knee = lerp(k0.knee, k1.knee, t);
+    let ankle = lerp(k0.ankle, k1.ankle, t);
+
+    return { hip, knee, ankle };
+  }
+
+  function recomputeAll() {
+    const hipHeight = Number(STATE.hip_height);
+    const stepLen = Number(STATE.step_len);
+
+    const hipX = new Array(N);
+    const hipY = new Array(N);
+    const v = stepLen / T;
+    for (let i = 0; i < N; i += 1) {
+      hipX[i] = v * T_ARR[i];
+      hipY[i] = hipHeight;
+    }
+
+    const left = computeLegSeries(0.0, hipX, hipY);
+    const right = computeLegSeries(0.5, hipX, hipY);
+
+    DATA.hipX = hipX;
+    DATA.hipY = hipY;
+    DATA.left = left;
+    DATA.right = right;
+
+    DATA.minX = Math.min(...hipX) - 0.4;
+    DATA.maxX = Math.max(...hipX) + 0.4;
+    DATA.minY = -0.05;
+    DATA.maxY = hipHeight + TORSO_LEN + 0.15;
+
+    const mean = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;
+    const q1m = mean(left.q1deg);
+    const q2m = mean(left.q2deg);
+    const q3m = mean(left.q3deg);
+    DATA.Lq1c = left.q1deg.map((v) => v - q1m);
+    DATA.Lq2c = left.q2deg.map((v) => v - q2m);
+    DATA.Lq3c = left.q3deg.map((v) => v - q3m);
+  }
+
+  function computeLegSeries(offset, hipX, hipY) {
     const q1 = new Array(N);
     const q2 = new Array(N);
     const q3 = new Array(N);
+    const q1deg = new Array(N);
+    const q2deg = new Array(N);
+    const q3deg = new Array(N);
     const kx = new Array(N);
     const ky = new Array(N);
     const ax = new Array(N);
@@ -125,20 +144,29 @@
     const tx = new Array(N);
     const ty = new Array(N);
 
+    let footOffset = 0;
     for (let i = 0; i < N; i += 1) {
-      const xRel = ankX[i] - hipX[i];
-      const yRel = ankY[i] - hipY[i];
-      const r2 = xRel * xRel + yRel * yRel;
-      let c2 = (r2 - L1 * L1 - L2 * L2) / (2 * L1 * L2);
-      c2 = clamp(c2, -1, 1);
-      const s2 = kneeBranch * Math.sqrt(Math.max(0, 1 - c2 * c2));
-      const q2i = Math.atan2(s2, c2);
-      const q1i = Math.atan2(yRel, xRel) - Math.atan2(L2 * Math.sin(q2i), L1 + L2 * Math.cos(q2i));
-      const q3i = theta[i] - (q1i + q2i);
+      const phase = ((T_ARR[i] / T) + offset) % 1.0;
+      const angles = gaitAngles(phase);
+      const hipFlex = -angles.hip;
+      const kneeFlex = -angles.knee;
+      const ankleRel = angles.ankle;
+
+      const q1i = (hipFlex - 90) * (Math.PI / 180);
+      const q2i = kneeFlex * (Math.PI / 180);
+      let q3i = ankleRel * (Math.PI / 180);
+
+      if (i === 0) {
+        footOffset = -(q1i + q2i + q3i);
+      }
+      q3i += footOffset;
 
       q1[i] = q1i;
       q2[i] = q2i;
       q3[i] = q3i;
+      q1deg[i] = hipFlex;
+      q2deg[i] = kneeFlex;
+      q3deg[i] = ankleRel + (footOffset * 180 / Math.PI);
 
       const kneeX = hipX[i] + L1 * Math.cos(q1i);
       const kneeY = hipY[i] + L1 * Math.sin(q1i);
@@ -156,57 +184,7 @@
       hy[i] = ankleY - HEEL_BACK * Math.sin(footAng);
     }
 
-    return { q1, q2, q3, kx, ky, ax, ay, hx, hy, tx, ty };
-  }
-
-  function recomputeAll() {
-    const hipHeight = Number(STATE.hip_height);
-    const stepLen = Number(STATE.step_len);
-    const clearance = Number(STATE.clearance);
-    const stanceRatio = Number(STATE.stance_ratio);
-    const toeUp = Number(STATE.toe_up_deg) * (Math.PI / 180);
-    const pushOff = Number(STATE.push_off_deg) * (Math.PI / 180);
-    const kneeBranch = Number(STATE.knee_branch);
-
-    const hipX = new Array(N);
-    const hipY = new Array(N);
-    const v = stepLen / T;
-    for (let i = 0; i < N; i += 1) {
-      hipX[i] = v * T_ARR[i];
-      hipY[i] = hipHeight;
-    }
-
-    const leftTraj = buildLegTrajectory(0.0, hipX, stanceRatio, stepLen, clearance, toeUp, pushOff);
-    const rightTraj = buildLegTrajectory(0.5, hipX, stanceRatio, stepLen, clearance, toeUp, pushOff);
-
-    const left = solveLegIK(leftTraj.ankX, leftTraj.ankY, leftTraj.theta, hipX, hipY, kneeBranch);
-    const right = solveLegIK(rightTraj.ankX, rightTraj.ankY, rightTraj.theta, hipX, hipY, kneeBranch);
-
-    DATA.hipX = hipX;
-    DATA.hipY = hipY;
-    DATA.ankLx = leftTraj.ankX;
-    DATA.ankLy = leftTraj.ankY;
-    DATA.ankRx = rightTraj.ankX;
-    DATA.ankRy = rightTraj.ankY;
-    DATA.left = left;
-    DATA.right = right;
-
-    DATA.minX = Math.min(...hipX) - 0.4;
-    DATA.maxX = Math.max(...hipX) + 0.4;
-    DATA.minY = -0.05;
-    DATA.maxY = hipHeight + TORSO_LEN + 0.15;
-
-    const toDeg = (arr) => arr.map((v) => v * (180 / Math.PI));
-    const Lq1 = toDeg(left.q1);
-    const Lq2 = toDeg(left.q2);
-    const Lq3 = toDeg(left.q3);
-    const mean = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;
-    const q1m = mean(Lq1);
-    const q2m = mean(Lq2);
-    const q3m = mean(Lq3);
-    DATA.Lq1c = Lq1.map((v) => v - q1m);
-    DATA.Lq2c = Lq2.map((v) => v - q2m);
-    DATA.Lq3c = Lq3.map((v) => v - q3m);
+    return { q1, q2, q3, q1deg, q2deg, q3deg, kx, ky, ax, ay, hx, hy, tx, ty };
   }
 
   function normalizeCanvas(canvas, ctx) {
@@ -405,33 +383,21 @@
   function updateLabels() {
     elements.hipHeightVal.textContent = Number(STATE.hip_height).toFixed(2);
     elements.stepLenVal.textContent = Number(STATE.step_len).toFixed(2);
-    elements.clearanceVal.textContent = Number(STATE.clearance).toFixed(2);
-    elements.stanceRatioVal.textContent = Number(STATE.stance_ratio).toFixed(3);
-    elements.toeUpVal.textContent = Number(STATE.toe_up_deg).toFixed(1);
-    elements.pushOffVal.textContent = Number(STATE.push_off_deg).toFixed(1);
   }
 
-  function bindSlider(input, key, formatter) {
+  function bindSlider(input, key) {
     input.addEventListener("input", () => {
       STATE[key] = Number(input.value);
       updateLabels();
       recomputeAll();
     });
-    if (formatter) {
-      input.value = formatter(STATE[key]);
-    } else {
-      input.value = STATE[key];
-    }
+    input.value = STATE[key];
   }
 
   function resetDefaults() {
     Object.assign(STATE, DEFAULTS);
     elements.hipHeight.value = STATE.hip_height;
     elements.stepLen.value = STATE.step_len;
-    elements.clearance.value = STATE.clearance;
-    elements.stanceRatio.value = STATE.stance_ratio;
-    elements.toeUp.value = STATE.toe_up_deg;
-    elements.pushOff.value = STATE.push_off_deg;
     updateLabels();
     recomputeAll();
   }
@@ -456,10 +422,6 @@
 
   bindSlider(elements.hipHeight, "hip_height");
   bindSlider(elements.stepLen, "step_len");
-  bindSlider(elements.clearance, "clearance");
-  bindSlider(elements.stanceRatio, "stance_ratio");
-  bindSlider(elements.toeUp, "toe_up_deg");
-  bindSlider(elements.pushOff, "push_off_deg");
 
   resetDefaults();
   render();
