@@ -42,7 +42,7 @@
   let paused = false;
   let frame = 0;
   let lastTick = 0;
-  let directionLabelForward = false;
+  let moveForward = true;
 
   const GAIT_KEYS = [
     { p: 0.0, hip: 20, knee: 0, ankle: 0 },
@@ -102,7 +102,7 @@
     const hipY = new Array(N);
     const v = stepLen / T;
     for (let i = 0; i < N; i += 1) {
-      hipX[i] = directionLabelForward ? (v * T_ARR[i]) : (v * (TOTAL_TIME - T_ARR[i]));
+      hipX[i] = moveForward ? (v * T_ARR[i]) : (v * (TOTAL_TIME - T_ARR[i]));
       hipY[i] = hipHeight;
     }
 
@@ -148,9 +148,10 @@
     for (let i = 0; i < N; i += 1) {
       const phase = ((T_ARR[i] / T) + offset) % 1.0;
       const angles = gaitAngles(phase);
-      const hipFlex = directionLabelForward ? angles.hip : -angles.hip;
-      const kneeFlex = directionLabelForward ? angles.knee : -angles.knee;
-      const ankleRel = directionLabelForward ? -angles.ankle : angles.ankle;
+      const hipFlex = moveForward ? angles.hip : -angles.hip;
+      const kneeFlex = moveForward ? angles.knee : -angles.knee;
+      const ankleRel = moveForward ? -angles.ankle : angles.ankle;
+      
 
       const q1i = (hipFlex - 90) * (Math.PI / 180);
       const q2i = kneeFlex * (Math.PI / 180);
@@ -412,8 +413,8 @@
   });
 
   elements.directionBtn.addEventListener("click", () => {
-    directionLabelForward = !directionLabelForward;
-    elements.directionBtn.textContent = directionLabelForward ? "Forwards" : "Backwards";
+    moveForward = !moveForward;
+    elements.directionBtn.textContent = moveForward ? "Backwards" : "Forwards";
     recomputeAll();
     render();
   });
@@ -421,7 +422,7 @@
   bindSlider(elements.hipHeight, "hip_height");
   bindSlider(elements.stepLen, "step_len");
 
-  directionLabelForward = elements.directionBtn.textContent.trim().toLowerCase() === "forwards";
+  moveForward = !(elements.directionBtn.textContent.trim().toLowerCase() === "forwards");
   resetDefaults();
   render();
   window.addEventListener("resize", render);
