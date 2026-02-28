@@ -44,17 +44,6 @@
   let lastTick = 0;
   let moveForward = true;
 
-  const GAIT_KEYS = [
-    { p: 0.0, hip: 20, knee: 0, ankle: 0 },
-    { p: 0.1, hip: 15, knee: 15, ankle: -5 },
-    { p: 0.3, hip: 5, knee: 5, ankle: 5 },
-    { p: 0.5, hip: -10, knee: 5, ankle: 0 },
-    { p: 0.6, hip: -10, knee: 30, ankle: -20 },
-    { p: 0.73, hip: 20, knee: 60, ankle: -10 },
-    { p: 0.87, hip: 30, knee: 30, ankle: 0 },
-    { p: 1.0, hip: 30, knee: 0, ankle: 0 },
-  ];
-
   const STANCE_RATIO = 0.6;
 
   function smoothstep(s) {
@@ -76,14 +65,37 @@
     return stanceRef + swingPhase * (1 - stanceRef);
   }
 
+  const GAIT_KEYS_FORWARD = [
+    { p: 0.0, hip: 20, knee: 0, ankle: -0 },
+    { p: 0.1, hip: 15, knee: 15, ankle: 5 },
+    { p: 0.3, hip: 5, knee: 5, ankle: -5 },
+    { p: 0.5, hip: -10, knee: 5, ankle: -0 },
+    { p: 0.6, hip: -10, knee: 30, ankle: 20 },
+    { p: 0.73, hip: 20, knee: 60, ankle: 10 },
+    { p: 0.87, hip: 30, knee: 30, ankle: -0 },
+    { p: 1.0, hip: 30, knee: 0, ankle: -0 },
+  ];
+
+  const GAIT_KEYS_BACKWARD = [
+    { p: 0.0, hip: -20, knee: -0, ankle: -0 },
+    { p: 0.1, hip: -15, knee: -15, ankle: -5 },
+    { p: 0.3, hip: -5, knee: -5, ankle: 5 },
+    { p: 0.5, hip: 10, knee: -5, ankle: 0 },
+    { p: 0.6, hip: 10, knee: -30, ankle: -20 },
+    { p: 0.73, hip: -20, knee: -60, ankle: -10 },
+    { p: 0.87, hip: -30, knee: -30, ankle: 0 },
+    { p: 1.0, hip: -30, knee: -0, ankle: 0 },
+  ];
+
   function gaitAngles(phase) {
     const canonical = mapPhaseToCanonical(phase);
+    const keys = moveForward ? GAIT_KEYS_FORWARD : GAIT_KEYS_BACKWARD;
     let i = 0;
-    while (i < GAIT_KEYS.length - 1 && GAIT_KEYS[i + 1].p < canonical) {
+    while (i < keys.length - 1 && keys[i + 1].p < canonical) {
       i += 1;
     }
-    const k0 = GAIT_KEYS[i];
-    const k1 = GAIT_KEYS[Math.min(i + 1, GAIT_KEYS.length - 1)];
+    const k0 = keys[i];
+    const k1 = keys[Math.min(i + 1, keys.length - 1)];
     const span = Math.max(1e-6, k1.p - k0.p);
     const t = smoothstep((canonical - k0.p) / span);
 
@@ -148,9 +160,9 @@
     for (let i = 0; i < N; i += 1) {
       const phase = ((T_ARR[i] / T) + offset) % 1.0;
       const angles = gaitAngles(phase);
-      const hipFlex = moveForward ? angles.hip : -angles.hip;
-      const kneeFlex = moveForward ? angles.knee : -angles.knee;
-      const ankleRel = moveForward ? -angles.ankle : angles.ankle;
+      const hipFlex = angles.hip;
+      const kneeFlex = angles.knee;
+      const ankleRel = angles.ankle;
       
 
       const q1i = (hipFlex - 90) * (Math.PI / 180);
