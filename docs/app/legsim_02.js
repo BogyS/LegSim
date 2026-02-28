@@ -66,14 +66,14 @@
   }
 
   const GAIT_KEYS_FORWARD = [
-    { p: 0.0, hip: 20, knee: 0, ankle: -0 },
-    { p: 0.1, hip: 15, knee: 15, ankle: 5 },
-    { p: 0.3, hip: 5, knee: 5, ankle: -5 },
-    { p: 0.5, hip: -10, knee: 5, ankle: -0 },
-    { p: 0.6, hip: -10, knee: 30, ankle: 20 },
-    { p: 0.73, hip: 20, knee: 60, ankle: 10 },
-    { p: 0.87, hip: 30, knee: 30, ankle: -0 },
-    { p: 1.0, hip: 30, knee: 0, ankle: -0 },
+    { p: 0.0, hip: 20, knee: -0, ankle: 0 },
+    { p: 0.1, hip: 15, knee: -15, ankle: 5 },
+    { p: 0.3, hip: 5, knee: -5, ankle: -5 },
+    { p: 0.5, hip: -10, knee: -5, ankle: 0 },
+    { p: 0.6, hip: -10, knee: -30, ankle: 20 },
+    { p: 0.73, hip: 20, knee: -60, ankle: 10 },
+    { p: 0.87, hip: 30, knee: -30, ankle: 0 },
+    { p: 1.0, hip: 30, knee: -0, ankle: 0 },
   ];
 
   const GAIT_KEYS_BACKWARD = [
