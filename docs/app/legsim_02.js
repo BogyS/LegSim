@@ -415,15 +415,15 @@
   });
 
   elements.directionBtn.addEventListener("click", () => {
-    reverseX = !reverseX;
-    elements.directionBtn.textContent = reverseX ? "Backwards" : "Forwards";
+    reverseX = false;
+    elements.directionBtn.textContent = reverseX ? "Forwards" : "Backwards";
     render();
   });
 
   bindSlider(elements.hipHeight, "hip_height");
   bindSlider(elements.stepLen, "step_len");
 
-  reverseX = elements.directionBtn.textContent.trim().toLowerCase() === "backwards";
+  reverseX = false;
   resetDefaults();
   render();
   window.addEventListener("resize", render);
