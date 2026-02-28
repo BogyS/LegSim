@@ -416,13 +416,14 @@
 
   elements.directionBtn.addEventListener("click", () => {
     reverseX = !reverseX;
-    elements.directionBtn.textContent = reverseX ? "Forwards" : "Backwards";
+    elements.directionBtn.textContent = reverseX ? "Backwards" : "Forwards";
     render();
   });
 
   bindSlider(elements.hipHeight, "hip_height");
   bindSlider(elements.stepLen, "step_len");
 
+  reverseX = elements.directionBtn.textContent.trim().toLowerCase() === "backwards";
   resetDefaults();
   render();
   window.addEventListener("resize", render);
