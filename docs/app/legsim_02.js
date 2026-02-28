@@ -118,8 +118,8 @@
       hipY[i] = hipHeight;
     }
 
-    const left = computeLegSeries(0.0, hipX, hipY);
-    const right = computeLegSeries(0.5, hipX, hipY);
+    const left = computeLegSeries(0.0, hipX, hipY, true);
+    const right = computeLegSeries(0.5, hipX, hipY, false);
 
     DATA.hipX = hipX;
     DATA.hipY = hipY;
@@ -140,7 +140,7 @@
     DATA.Lq3c = left.q3deg.map((v) => v - q3m);
   }
 
-  function computeLegSeries(offset, hipX, hipY) {
+  function computeLegSeries(offset, hipX, hipY, isLeft) {
     const q1 = new Array(N);
     const q2 = new Array(N);
     const q3 = new Array(N);
@@ -162,7 +162,11 @@
       const angles = gaitAngles(phase);
       const hipFlex = angles.hip;
       const kneeFlex = angles.knee;
-      const ankleRel = angles.ankle;
+      let ankleRel = angles.ankle;
+
+      if ((moveForward && isLeft) || (!moveForward && !isLeft)) {
+        ankleRel = -ankleRel;
+      }
       
 
       const q1i = (hipFlex - 90) * (Math.PI / 180);
