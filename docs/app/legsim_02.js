@@ -43,6 +43,7 @@
   let frame = 0;
   let lastTick = 0;
   let reverseX = false;
+  let directionLabelForward = false;
 
   const GAIT_KEYS = [
     { p: 0.0, hip: 20, knee: 0, ankle: 0 },
@@ -416,7 +417,8 @@
 
   elements.directionBtn.addEventListener("click", () => {
     reverseX = false;
-    elements.directionBtn.textContent = reverseX ? "Forwards" : "Backwards";
+    directionLabelForward = !directionLabelForward;
+    elements.directionBtn.textContent = directionLabelForward ? "Forwards" : "Backwards";
     render();
   });
 
@@ -424,6 +426,7 @@
   bindSlider(elements.stepLen, "step_len");
 
   reverseX = false;
+  directionLabelForward = elements.directionBtn.textContent.trim().toLowerCase() === "forwards";
   resetDefaults();
   render();
   window.addEventListener("resize", render);
