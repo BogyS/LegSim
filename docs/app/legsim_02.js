@@ -450,17 +450,19 @@
 
   elements.modeBtn.addEventListener("click", () => {
     phaseMode = !phaseMode;
-    elements.modeBtn.textContent = phaseMode ? "Phase mode" : "Continuous";
+    elements.modeBtn.textContent = phaseMode ? "Continuous" : "Phase Mode";
+    elements.nextPhaseBtn.disabled = !phaseMode;
     if (!phaseMode) {
       lastTick = 0;
+    } else {
+      frame = Math.round(GAIT_PHASES[phaseIndex] * (N - 1));
     }
     render();
   });
 
   elements.nextPhaseBtn.addEventListener("click", () => {
     if (!phaseMode) {
-      phaseMode = true;
-      elements.modeBtn.textContent = "Phase mode";
+      return;
     }
     phaseIndex = (phaseIndex + 1) % GAIT_PHASES.length;
     frame = Math.round(GAIT_PHASES[phaseIndex] * (N - 1));
@@ -471,7 +473,8 @@
   bindSlider(elements.stepLen, "step_len");
 
   moveForward = !(elements.directionBtn.textContent.trim().toLowerCase() === "forwards");
-  phaseMode = elements.modeBtn.textContent.trim().toLowerCase().includes("phase");
+  //phaseMode = elements.modeBtn.textContent.trim().toLowerCase().includes("phase");
+  elements.nextPhaseBtn.disabled = !phaseMode;
   if (phaseMode) {
     frame = Math.round(GAIT_PHASES[phaseIndex] * (N - 1));
   }
