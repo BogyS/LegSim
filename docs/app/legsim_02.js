@@ -416,17 +416,17 @@
   });
 
   elements.directionBtn.addEventListener("click", () => {
-    reverseX = false;
     directionLabelForward = !directionLabelForward;
     elements.directionBtn.textContent = directionLabelForward ? "Forwards" : "Backwards";
+    reverseX = !directionLabelForward;
     render();
   });
 
   bindSlider(elements.hipHeight, "hip_height");
   bindSlider(elements.stepLen, "step_len");
 
-  reverseX = false;
   directionLabelForward = elements.directionBtn.textContent.trim().toLowerCase() === "forwards";
+  reverseX = !directionLabelForward;
   resetDefaults();
   render();
   window.addEventListener("resize", render);
