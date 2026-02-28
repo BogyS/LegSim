@@ -33,6 +33,8 @@
     pauseBtn: document.getElementById("sim-pause"),
     resetBtn: document.getElementById("sim-reset"),
     directionBtn: document.getElementById("sim-direction"),
+    modeBtn: document.getElementById("sim-mode"),
+    nextPhaseBtn: document.getElementById("sim-next-phase"),
     hipHeight: document.getElementById("sim-hip-height"),
     stepLen: document.getElementById("sim-step-len"),
     hipHeightVal: document.getElementById("sim-hip-height-val"),
@@ -43,6 +45,8 @@
   let frame = 0;
   let lastTick = 0;
   let moveForward = true;
+  let phaseMode = false;
+  let phaseIndex = 0;
 
   const STANCE_RATIO = 0.6;
 
@@ -86,6 +90,8 @@
     { p: 0.87, hip: -30, knee: -30, ankle: 0 },
     { p: 1.0, hip: -30, knee: -0, ankle: 0 },
   ];
+
+  const GAIT_PHASES = GAIT_KEYS_FORWARD.map((k) => k.p);
 
   function gaitAngles(phase) {
     const canonical = mapPhaseToCanonical(phase);
@@ -392,7 +398,7 @@
       lastTick = ts;
     }
     const delta = ts - lastTick;
-    if (!paused && delta >= 1000 / FPS) {
+    if (!phaseMode && !paused && delta >= 1000 / FPS) {
       frame = (frame + 1) % N;
       lastTick = ts;
     }
@@ -431,6 +437,7 @@
     paused = false;
     elements.pauseBtn.textContent = "Pause";
     frame = 0;
+    phaseIndex = 0;
     resetDefaults();
   });
 
@@ -441,10 +448,33 @@
     render();
   });
 
+  elements.modeBtn.addEventListener("click", () => {
+    phaseMode = !phaseMode;
+    elements.modeBtn.textContent = phaseMode ? "Phase mode" : "Continuous";
+    if (!phaseMode) {
+      lastTick = 0;
+    }
+    render();
+  });
+
+  elements.nextPhaseBtn.addEventListener("click", () => {
+    if (!phaseMode) {
+      phaseMode = true;
+      elements.modeBtn.textContent = "Phase mode";
+    }
+    phaseIndex = (phaseIndex + 1) % GAIT_PHASES.length;
+    frame = Math.round(GAIT_PHASES[phaseIndex] * (N - 1));
+    render();
+  });
+
   bindSlider(elements.hipHeight, "hip_height");
   bindSlider(elements.stepLen, "step_len");
 
   moveForward = !(elements.directionBtn.textContent.trim().toLowerCase() === "forwards");
+  phaseMode = elements.modeBtn.textContent.trim().toLowerCase().includes("phase");
+  if (phaseMode) {
+    frame = Math.round(GAIT_PHASES[phaseIndex] * (N - 1));
+  }
   resetDefaults();
   render();
   window.addEventListener("resize", render);
