@@ -416,7 +416,7 @@
 
   elements.directionBtn.addEventListener("click", () => {
     reverseX = !reverseX;
-    elements.directionBtn.textContent = reverseX ? "Right → Left" : "Left → Right";
+    elements.directionBtn.textContent = reverseX ? "Forwards" : "Backwards";
     render();
   });
 
