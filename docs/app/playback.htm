@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light" />
+  <title>LegSim Playback</title>
+  <link rel="icon" href="../favicon.ico" />
+  <link rel="stylesheet" href="legsim.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="hero">
+      <div class="hero-text">
+            <h2>CSV Playback for Two-Leg Exoskeleton Kinematics</h2>
+      </div>
+    </header>
+    
+    <section class="controls card">
+      <div class="control-group">
+        <label for="dataset">Dataset (data/csv)</label>
+        <select id="dataset">
+          <option value="">Select a dataset...</option>
+          <option value="../data/csv/1.3 ANSYS ANGULAR VELOCITY.csv">1.3 ANSYS ANGULAR VELOCITY</option>
+          <option value="../data/csv/2.1 Equivalent Moment and Angular velocity.csv">2.1 Equivalent Moment and Angular velocity</option>
+          <option value="../data/csv/4.3 ANGULAR VELOCITY.csv">4.3 ANGULAR VELOCITY</option>
+        </select>
+        <button id="load-dataset" type="button">Load Dataset</button>
+      </div>
+
+      <div class="control-group">
+        <label for="file-input">Load local CSV/TSV</label>
+        <input id="file-input" type="file" accept=".csv,.tsv,.txt" />
+        <button id="load-file" type="button">Load File</button>
+      </div>
+
+      <div class="control-group">
+        <div class="button-row">
+          <button id="pause-btn" type="button">Pause</button>
+          <button id="reset-btn" type="button">Reset</button>
+          <a class="chip" href="../index.htm">Home</a>
+        </div>
+        <div class="checkbox-row single-line">
+          <label><input type="checkbox" id="flip-hip" /> Flip hip</label>
+          <label><input type="checkbox" id="flip-knee" /> Flip knee</label>
+          <label><input type="checkbox" id="flip-ankle" /> Flip ankle</label>
+        </div>
+      </div>
+
+      <div class="control-group wide">
+        <div id="status" class="status">Load a dataset or a local file to begin.</div>
+      </div>
+    </section>
+
+    <section class="plots">
+      <div class="card plot-card">
+        <header>
+          <h2>Motion View</h2>
+          <p>2D leg + torso animation (fixed world frame).</p>
+        </header>
+        <canvas id="walk-canvas" width="900" height="520"></canvas>
+      </div>
+      <div class="card plot-card">
+        <header>
+          <h2>Joint Angles</h2>
+          <p>Three centered curves with synchronized cursor.</p>
+        </header>
+        <canvas id="angle-canvas" width="520" height="520"></canvas>
+      </div>
+    </section>
+  </main>
+
+  <script src="legsim_playback.js"></script>
+</body>
+</html>

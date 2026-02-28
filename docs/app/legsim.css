@@ -1,13 +1,13 @@
 :root {
   color-scheme: light;
-  --bg: #f4f1ec;
-  --surface: #fff8ef;
+  --bg: #e9f2ff;
+  --surface: #f7fbff;
   --ink: #1a1a1a;
   --muted: #5c5c5c;
   --accent: #1463a8;
   --accent-dark: #0f4a7a;
-  --warm: #f3d3b0;
-  --border: #e6d8c8;
+  --warm: #b9d6ff;
+  --border: #cdddf2;
   --shadow: 0 12px 30px rgba(23, 22, 20, 0.12);
 }
 
@@ -20,7 +20,7 @@
 body {
   margin: 0;
   font-family: "Manrope", "Avenir Next", "Segoe UI", sans-serif;
-  background: radial-gradient(circle at 10% 20%, #fff6e7 0%, #f4f1ec 45%, #e8e1d6 100%);
+  background: radial-gradient(circle at 10% 20%, #f2f7ff 0%, #e9f2ff 45%, #d9e7fb 100%);
   color: var(--ink);
 }
 
@@ -40,7 +40,7 @@ body {
 }
 
 .hero-text h1 {
-  font-size: clamp(1.8rem, 2.6vw, 3rem);
+  font-size: clamp(1.5rem, 2.1vw, 2.4rem);
   margin: 8px 0 12px;
 }
 
@@ -55,8 +55,8 @@ body {
 .hero-text .subhead {
   color: var(--muted);
   font-size: 1rem;
-  line-height: 1.5;
-  margin: 0 0 16px;
+  line-height: 1.25;
+  margin: 6px 0 10px;
 }
 
 .hero-actions {
@@ -66,7 +66,7 @@ body {
 }
 
 .hero-media {
-  background: linear-gradient(135deg, #f8e7d2, #f0cfa6);
+  background: linear-gradient(135deg, #d9e9ff, #bcd3f7);
   padding: 18px;
   border-radius: 18px;
   box-shadow: var(--shadow);
@@ -151,6 +151,13 @@ body {
   gap: 8px;
   font-size: 0.95rem;
   color: var(--muted);
+}
+
+.checkbox-row.single-line {
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  gap: 16px;
+  align-items: center;
 }
 
 .checkbox-row input {
