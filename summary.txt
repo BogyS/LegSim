@@ -1,0 +1,98 @@
+Session Summary (LegSim)
+
+Context
+- Focused on web version under docs/, with two simulation variants and playback.
+- Simulation 01 stays unchanged; all recent work targets Simulation 02 only.
+- Primary files for Simulation 02: docs/app/simulation_02.htm and docs/app/legsim_02.js.
+
+Current Behavior Highlights (Simulation 02)
+- Two modes: Continuous and Phase Mode. Mode button toggles between them.
+- Initial state: mode button text is "Phase Mode"; phaseMode = false; Next Phase disabled.
+- Clicking Mode enables Phase Mode, enables Next Phase, and changes text to "Continuous".
+- Next Phase steps through discrete gait keyframes in a loop.
+- Direction button text shows the *next* direction (semantics flipped):
+  - "Forwards" displayed => moveForward is false (backward motion active)
+  - After click, moveForward becomes true and button shows "Backwards"
+- moveForward affects hipX direction and which gait keyframe table is used.
+
+Gait Keyframes
+- GAIT_KEYS_FORWARD and GAIT_KEYS_BACKWARD are explicit arrays (no base mapping).
+- Forward table uses negative knee values; backward is negated forward.
+
+Animation / Rendering
+- Walking view: left leg thigh blue, left knee segment brown, left foot green; right leg/foot black.
+- Angle plots: hip blue, knee brown, ankle green (left leg only).
+- Ground line is drawn at y = 0.
+
+Recent Changes/Decisions
+- Reverted to prior code state when ankle flip per-leg was confusing.
+- Foot offset logic was reverted to previous version before the last troubleshooting.
+- Direction button remains label-only semantics (next action indicator).
+
+Open Issues / Next Steps
+- Need to resolve foot/ankle orientation differences per leg across forward/backward.
+- Clarify which cases are correct/incorrect (FL/FR/BL/BR) with explicit labels.
+- If needed, reintroduce per-leg foot offset logic based on a chosen reference phase.
+
+Important Note
+- User prefers no changes to Simulation 01; only adjust Simulation 02.
+
+Session Extension Summary (English)
+
+General Progress After The Initial Simulation 02 Work
+- Added and maintained newer variants: Simulation 03, Simulation 04, and Simulation 05.
+- Kept iterative workflow: small visual/logic changes, user validation, then commit + push.
+- Continued using docs/ as the deployable website root.
+
+Simulation 03 Summary
+- Simulation 03 was created as a separate variant from previous work.
+- Goal remained phase-based gait with alternating left/right legs and preserved half-cycle offset.
+- Discussions focused on correctness of phase ordering, direction handling, and phase interpretation.
+- Result: Simulation 03 stayed as a stable reference branch while newer experiments moved to 04/05.
+
+Simulation 04 Summary
+- Simulation 04 evolved from 03 with stronger parameterization and control behavior:
+  - Human height support with derived segment lengths (L1, L2).
+  - Derived step length linked to model geometry/angles.
+  - Speed factor adjusted to affect playback rate (time) rather than changing spatial step size.
+  - Improved continuity between Continuous mode and Phase mode (step/phase tracking preserved when switching modes).
+  - Dynamic status text for current step and phase.
+- Angle tables were iteratively corrected (especially ankle sign convention and typical PF/DF ranges).
+- Final intent for 04: keep it stable as a validated baseline and branch new ideas into 05.
+
+Simulation 05 Summary (Current Active Variant)
+- Started as a copy of 04, then expanded with foot geometry and pelvis diagnostics.
+- Foot model updates:
+  - Added toe-break (MTP) point and separate toe segment.
+  - Updated foot split so toe segment is shorter at 1.8 m (ankle->MTP ~0.16 m, MTP->toe ~0.105 m).
+  - Toe flattening now comes from geometry logic (toe tip vs toe-break level), not fixed phase windows.
+- Pelvis / hip vertical motion:
+  - Reworked hipY to be model-driven: base hipY = L1 + L2, then per-frame upward translation only as needed to keep the leg above ground constraints.
+  - Ground line was anchored visually at a fixed pixel offset from the bottom of the walking canvas.
+  - Added thin solid hip trajectory line in the Walking View.
+- View/layout tuning:
+  - Walking/angles canvas height alignment and compacted top controls/header spacing.
+  - Tuned world X bounds (WORLD_MIN_X / WORLD_MAX_X) for preferred framing.
+
+Pelvis Plot Tool (hipy_plot_05.htm)
+- Added a dedicated page for Hip Y diagnostics over the first 60 frames (one cycle).
+- Plot behavior now matches Simulation 05 hip translation logic.
+- Added:
+  - Uniform axis scaling.
+  - Mouse hover readout (frame, phase, y value).
+  - Vertical cursor line at hovered X.
+  - Fixed canvas height (300 px) to avoid visual growth after refresh/hover.
+- Added navigation link from Simulation 05 to Pelvis Plot and Home.
+
+Latest Updates (English Notes)
+- Pelvis plot now uses:
+  - Uniform X/Y scaling,
+  - Mouse hover readout (frame, phase, y),
+  - Thin vertical cursor line at hovered X,
+  - Fixed canvas height (300 px) to prevent resize drift.
+- Simulation 05 hip translation was updated again:
+  - Hip Y is now computed so the global lowest leg point (across both legs) stays exactly at `groundMargin` each frame.
+  - This guarantees constant minimum ground clearance and removes frames with both legs floating above the margin.
+- Expected side effect of the new rule:
+  - Hip Y can drop below `L1 + L2` (for 1.80 m, minimum around 0.8515 m),
+  - The curve can show sharp transitions where the active limiting contact point switches (piecewise min behavior).
