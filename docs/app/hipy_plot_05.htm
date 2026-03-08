@@ -176,23 +176,27 @@
         };
       }
 
-      function legToeBreakRelativeY(angles, geom) {
+      function legMinRelativeY(angles, geom) {
         const q1 = (angles.hip - 90) * (Math.PI / 180);
         const q2 = angles.knee * (Math.PI / 180);
         const footTheta = angles.ankle * (Math.PI / 180);
         const footAng = footTheta;
+        const kneeY = geom.l1 * Math.sin(q1);
         const ankleY = geom.l1 * Math.sin(q1) + geom.l2 * Math.sin(q1 + q2);
+        const heelY = ankleY - geom.heelBack * Math.sin(footAng);
         const mtpY = ankleY + geom.mtpFwd * Math.sin(footAng);
-        return mtpY;
+        const toeYRaw = mtpY + geom.toeTipFwd * Math.sin(footAng);
+        const toeY = toeYRaw < mtpY ? mtpY : toeYRaw;
+        return Math.min(kneeY, ankleY, heelY, mtpY, toeY);
       }
 
       function hipYAtPhase(phase, geom) {
         const left = phase % 1;
         const right = (phase + 0.5) % 1;
-        const reqL = -legToeBreakRelativeY(gaitAngles(left), geom);
-        const reqR = -legToeBreakRelativeY(gaitAngles(right), geom);
-        const required = Math.max(reqL, reqR) + geom.groundMargin;
-        return geom.hipHeight + Math.max(0, required - geom.hipHeight);
+        const minRelL = legMinRelativeY(gaitAngles(left), geom);
+        const minRelR = legMinRelativeY(gaitAngles(right), geom);
+        const minRel = Math.min(minRelL, minRelR);
+        return geom.groundMargin - minRel;
       }
 
       function buildSeries(h) {

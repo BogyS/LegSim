@@ -193,15 +193,19 @@
     return Math.max(0.2, step);
   }
 
-  function legToeBreakRelativeY(angles, geom) {
+  function legMinRelativeY(angles, geom) {
     const q1 = (angles.hip - 90) * (Math.PI / 180);
     const q2 = angles.knee * (Math.PI / 180);
     const footTheta = angles.ankle * (Math.PI / 180);
     const footAng = footTheta;
 
+    const kneeY = geom.l1 * Math.sin(q1);
     const ankleY = geom.l1 * Math.sin(q1) + geom.l2 * Math.sin(q1 + q2);
+    const heelY = ankleY - geom.heelBack * Math.sin(footAng);
     const mtpY = ankleY + geom.mtpFwd * Math.sin(footAng);
-    return mtpY;
+    const toeYRaw = mtpY + geom.toeTipFwd * Math.sin(footAng);
+    const toeY = toeYRaw < mtpY ? mtpY : toeYRaw;
+    return Math.min(kneeY, ankleY, heelY, mtpY, toeY);
   }
 
   function recomputeAll() {
@@ -210,7 +214,6 @@
 
     const hipX = new Array(N);
     const hipY = new Array(N);
-    const hipYBase = geom.hipHeight;
     const scale = geom.l1 / BASE_L1;
     const groundMargin = 0.002 * scale;
     // Speed factor should change only playback rate, not spatial step size.
@@ -222,11 +225,11 @@
       const anglesL = gaitAngles(phaseL);
       const anglesR = gaitAngles(phaseR);
 
-      const reqL = -legToeBreakRelativeY(anglesL, geom);
-      const reqR = -legToeBreakRelativeY(anglesR, geom);
-      const requiredHipY = Math.max(reqL, reqR) + groundMargin;
-      const dy = Math.max(0, requiredHipY - hipYBase);
-      hipY[i] = hipYBase + dy;
+      const minRelL = legMinRelativeY(anglesL, geom);
+      const minRelR = legMinRelativeY(anglesR, geom);
+      const minRel = Math.min(minRelL, minRelR);
+      // Keep the lowest point at groundMargin for every frame.
+      hipY[i] = groundMargin - minRel;
     }
 
     const left = computeLegSeries(0.0, hipX, hipY, geom);
