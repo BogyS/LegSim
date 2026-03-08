@@ -16,12 +16,16 @@
     #sim-angle-canvas {
       height: 520px;
     }
-    .sim05-link {
-      display: inline-block;
-      margin-top: 10px;
+    .sim05-interp-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
     }
-    .sim05-link + .sim05-link {
-      margin-left: 8px;
+    .sim05-links-row {
+      margin-left: auto;
+      display: flex;
+      gap: 8px;
     }
   </style>
 </head>
@@ -107,13 +111,20 @@
 
       <div class="control-group">
         <label for="sim-interp-mode">Interpolation</label>
-        <select id="sim-interp-mode">
-          <option value="smoothstep" selected>Smoothstep</option>
-          <option value="linear">Linear</option>
-          <option value="step">Step / Discrete</option>
-        </select>
-        <a class="chip sim05-link" href="hipy_plot_05.htm">Pelvis Plot</a>
-        <a class="chip sim05-link" href="../index.htm">Home</a>
+        <div class="sim05-interp-row">
+          <select id="sim-interp-mode">
+            <option value="smoothstep" selected>Smoothstep</option>
+            <option value="linear">Linear</option>
+            <option value="step">Step / Discrete</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <div class="sim05-links-row">
+          <a class="chip" href="hipy_plot_05.htm">Pelvis Plot</a>
+          <a class="chip" href="../index.htm">Home</a>
+        </div>
       </div>
     </section>
 
