@@ -206,7 +206,7 @@
     const mtpY = ankleY + geom.mtpFwd * Math.sin(footAng);
     let toeY = mtpY + geom.toeTipFwd * Math.sin(footAng);
 
-    if (phase >= 0.3 && phase <= 0.5) {
+    if (isToeFlatPhase(phase)) {
       toeY = mtpY;
     }
 
@@ -310,7 +310,7 @@
       ay[i] = ankleY;
       mx[i] = ankleX + geom.mtpFwd * Math.cos(footAng);
       my[i] = ankleY + geom.mtpFwd * Math.sin(footAng);
-      if (phase >= 0.3 && phase <= 0.5) {
+      if (isToeFlatPhase(phase)) {
         // Keep toe segment horizontal in local mid-to-terminal stance.
         const toeDir = Math.sign(Math.cos(footAng)) || 1;
         tx[i] = mx[i] + (geom.toeTipFwd * toeDir);
@@ -324,6 +324,15 @@
     }
 
     return { q1, q2, q3, q1deg, q2deg, q3deg, kx, ky, ax, ay, mx, my, hx, hy, tx, ty };
+  }
+
+  function isToeFlatPhase(phase) {
+    const p = ((phase % 1) + 1) % 1;
+    if (moveForward) {
+      return p >= 0.3 && p <= 0.5;
+    }
+    // In backward mode, use the half-cycle-shifted stance window.
+    return p >= 0.8;
   }
 
   function normalizeCanvas(canvas, ctx) {

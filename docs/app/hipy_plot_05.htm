@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Simulation 05 HipY Plot</title>
+  <link rel="icon" href="../favicon.ico" />
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #e9f2ff;
+      --surface: #f7fbff;
+      --ink: #1a1a1a;
+      --muted: #5c5c5c;
+      --accent: #1463a8;
+      --border: #cdddf2;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Manrope", "Avenir Next", "Segoe UI", sans-serif;
+      background: radial-gradient(circle at 10% 20%, #f2f7ff 0%, #e9f2ff 45%, #d9e7fb 100%);
+      color: var(--ink);
+    }
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 28px 20px 36px;
+      display: grid;
+      gap: 16px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    canvas {
+      width: 100%;
+      height: auto;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #fbfaf8;
+    }
+    .muted { color: var(--muted); margin: 0; }
+    input[type="range"] { width: min(420px, 100%); }
+    .badge {
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 999px;
+      padding: 5px 10px;
+      min-width: 70px;
+      text-align: center;
+      font-size: 0.92rem;
+    }
+    a {
+      color: var(--accent);
+      text-decoration: none;
+      border: 1px solid var(--accent);
+      border-radius: 999px;
+      padding: 6px 12px;
+      background: #fff;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="card">
+      <div class="row">
+        <strong>Simulation 05 HipY (first 60 frames)</strong>
+        <a href="simulation_05.htm">Back to Simulation 05</a>
+      </div>
+      <p class="muted">This chart uses the same joint tables and geometry rules as simulation_05 for one gait cycle.</p>
+    </section>
+
+    <section class="card">
+      <div class="row">
+        <label for="height">Human height (m)</label>
+        <input id="height" type="range" min="1.50" max="2.00" step="0.01" value="1.80" />
+        <span id="height-val" class="badge">1.80</span>
+        <span id="stats" class="badge"></span>
+      </div>
+      <canvas id="plot" width="920" height="360"></canvas>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const FPS = 60;
+      const BASE_HEIGHT = 1.8;
+      const BASE_L1 = 0.45;
+      const BASE_L2 = 0.43;
+      const BASE_FOOT_TOTAL = 0.265;
+      const BASE_HEEL_BACK = 0.06;
+      const BASE_MTP_FWD = 0.16;
+      const STANCE_RATIO = 0.6;
+
+      const KEYS = [
+        { p: 0.0, hip: 20, knee: 0, ankle: 0 },
+        { p: 0.1, hip: 15, knee: -15, ankle: 5 },
+        { p: 0.3, hip: 5, knee: -5, ankle: -5 },
+        { p: 0.5, hip: -10, knee: -5, ankle: -10 },
+        { p: 0.6, hip: -10, knee: -30, ankle: 20 },
+        { p: 0.73, hip: 20, knee: -60, ankle: 10 },
+        { p: 0.87, hip: 30, knee: -30, ankle: 0 },
+        { p: 1.0, hip: 30, knee: 0, ankle: 0 }
+      ];
+
+      const heightSlider = document.getElementById("height");
+      const heightVal = document.getElementById("height-val");
+      const stats = document.getElementById("stats");
+      const canvas = document.getElementById("plot");
+      const ctx = canvas.getContext("2d");
+
+      const lerp = (a, b, t) => a + (b - a) * t;
+      const smoothstep = (s) => {
+        const x = Math.max(0, Math.min(1, s));
+        return x * x * (3 - 2 * x);
+      };
+
+      function mapPhaseToCanonical(phase) {
+        const stanceRef = 0.6;
+        if (phase <= STANCE_RATIO) {
+          const s = STANCE_RATIO === 0 ? 0 : phase / STANCE_RATIO;
+          return s * stanceRef;
+        }
+        const swing = (phase - STANCE_RATIO) / Math.max(1e-6, 1 - STANCE_RATIO);
+        return stanceRef + swing * (1 - stanceRef);
+      }
+
+      function gaitAngles(phase) {
+        const canonical = mapPhaseToCanonical(phase);
+        let i = 0;
+        while (i < KEYS.length - 1 && KEYS[i + 1].p < canonical) {
+          i += 1;
+        }
+        const k0 = KEYS[i];
+        const k1 = KEYS[Math.min(i + 1, KEYS.length - 1)];
+        const span = Math.max(1e-6, k1.p - k0.p);
+        const rawT = Math.max(0, Math.min(1, (canonical - k0.p) / span));
+        const t = smoothstep(rawT);
+        return {
+          hip: lerp(k0.hip, k1.hip, t),
+          knee: lerp(k0.knee, k1.knee, t),
+          ankle: lerp(k0.ankle, k1.ankle, t)
+        };
+      }
+
+      function buildGeometry(h) {
+        const scale = h / BASE_HEIGHT;
+        const l1 = BASE_L1 * scale;
+        const l2 = BASE_L2 * scale;
+        const footTotal = BASE_FOOT_TOTAL * scale;
+        const mtpFwd = BASE_MTP_FWD * scale;
+        return {
+          l1,
+          l2,
+          heelBack: BASE_HEEL_BACK * scale,
+          mtpFwd,
+          toeTipFwd: Math.max(0.02, footTotal - mtpFwd),
+          hipHeight: l1 + l2,
+          groundMargin: 0.002 * scale
+        };
+      }
+
+      function legMinRelativeY(phase, angles, geom) {
+        const q1 = (angles.hip - 90) * (Math.PI / 180);
+        const q2 = angles.knee * (Math.PI / 180);
+        const footTheta = angles.ankle * (Math.PI / 180);
+        const q3 = footTheta - (q1 + q2);
+        const footAng = q1 + q2 + q3;
+
+        const kneeY = geom.l1 * Math.sin(q1);
+        const ankleY = kneeY + geom.l2 * Math.sin(q1 + q2);
+        const heelY = ankleY - geom.heelBack * Math.sin(footAng);
+        const mtpY = ankleY + geom.mtpFwd * Math.sin(footAng);
+        let toeY = mtpY + geom.toeTipFwd * Math.sin(footAng);
+        if (phase >= 0.3 && phase <= 0.5) {
+          toeY = mtpY;
+        }
+        return Math.min(0, kneeY, ankleY, heelY, mtpY, toeY);
+      }
+
+      function hipYAtPhase(phase, geom) {
+        const left = phase % 1;
+        const right = (phase + 0.5) % 1;
+        const reqL = -legMinRelativeY(left, gaitAngles(left), geom);
+        const reqR = -legMinRelativeY(right, gaitAngles(right), geom);
+        const required = Math.max(reqL, reqR) + geom.groundMargin;
+        return geom.hipHeight + Math.max(0, required - geom.hipHeight);
+      }
+
+      function buildSeries(h) {
+        const geom = buildGeometry(h);
+        const y = [];
+        for (let i = 0; i < FPS; i += 1) {
+          const phase = i / FPS;
+          y.push(hipYAtPhase(phase, geom));
+        }
+        return y;
+      }
+
+      function draw(series) {
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = Math.floor(rect.width * dpr);
+        canvas.height = Math.floor(rect.height * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        const w = rect.width;
+        const h = rect.height;
+        const pad = { l: 50, r: 20, t: 18, b: 32 };
+        const pw = w - pad.l - pad.r;
+        const ph = h - pad.t - pad.b;
+        const min = Math.min(...series);
+        const max = Math.max(...series);
+        const span = Math.max(1e-6, max - min);
+        const y0 = min - span * 0.15;
+        const y1 = max + span * 0.15;
+
+        const mapX = (i) => pad.l + (i / (series.length - 1)) * pw;
+        const mapY = (v) => pad.t + (1 - ((v - y0) / (y1 - y0))) * ph;
+
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = "#fbfaf8";
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.strokeStyle = "#d9cbb7";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(pad.l, pad.t, pw, ph);
+
+        ctx.fillStyle = "#5c5c5c";
+        ctx.font = "12px Manrope, sans-serif";
+        ctx.fillText("Frame", w - 62, h - 10);
+        ctx.fillText("Hip Y (m)", 8, 18);
+
+        ctx.strokeStyle = "#b7a58e";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        const baselineY = mapY(series[0]);
+        ctx.moveTo(pad.l, baselineY);
+        ctx.lineTo(pad.l + pw, baselineY);
+        ctx.stroke();
+
+        ctx.strokeStyle = "#1463a8";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let i = 0; i < series.length; i += 1) {
+          const x = mapX(i);
+          const y = mapY(series[i]);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        for (let t = 0; t <= 60; t += 10) {
+          const x = mapX(Math.min(59, t));
+          ctx.strokeStyle = "#d9cbb7";
+          ctx.beginPath();
+          ctx.moveTo(x, pad.t);
+          ctx.lineTo(x, pad.t + ph);
+          ctx.stroke();
+          ctx.fillStyle = "#5c5c5c";
+          ctx.fillText(String(t), x - 7, h - 10);
+        }
+      }
+
+      function refresh() {
+        const h = Number(heightSlider.value);
+        const series = buildSeries(h);
+        const min = Math.min(...series);
+        const max = Math.max(...series);
+        heightVal.textContent = h.toFixed(2);
+        stats.textContent = `min ${min.toFixed(3)}  max ${max.toFixed(3)}  amp ${(max - min).toFixed(3)}`;
+        draw(series);
+      }
+
+      heightSlider.addEventListener("input", refresh);
+      window.addEventListener("resize", refresh);
+      refresh();
+    })();
+  </script>
+</body>
+</html>
