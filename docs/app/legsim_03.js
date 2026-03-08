@@ -17,6 +17,8 @@
   const HEEL_BACK = 0.06;
   const TOE_FWD = FOOT_TOTAL - HEEL_BACK;
   const TORSO_LEN = 0.55;
+  const WORLD_MIN_X = -0.4;
+  const WORLD_MAX_X = 2.5;
 
   const DEFAULTS = {
     hip_height: 0.92,
@@ -35,6 +37,7 @@
     directionBtn: document.getElementById("sim-direction"),
     modeBtn: document.getElementById("sim-mode"),
     nextPhaseBtn: document.getElementById("sim-next-phase"),
+    interpMode: document.getElementById("sim-interp-mode"),
     hipHeight: document.getElementById("sim-hip-height"),
     stepLen: document.getElementById("sim-step-len"),
     hipHeightVal: document.getElementById("sim-hip-height-val"),
@@ -47,6 +50,7 @@
   let moveForward = true;
   let phaseMode = false;
   let phaseIndex = 0;
+  let interpMode = "smoothstep";
 
   const STANCE_RATIO = 0.6;
 
@@ -103,7 +107,8 @@
     const k0 = keys[i];
     const k1 = keys[Math.min(i + 1, keys.length - 1)];
     const span = Math.max(1e-6, k1.p - k0.p);
-    const t = smoothstep((canonical - k0.p) / span);
+    const rawT = Math.max(0, Math.min(1, (canonical - k0.p) / span));
+    const t = interpMode === "step" ? 0 : (interpMode === "linear" ? rawT : smoothstep(rawT));
 
     let hip = lerp(k0.hip, k1.hip, t);
     let knee = lerp(k0.knee, k1.knee, t);
@@ -124,29 +129,25 @@
       hipY[i] = hipHeight;
     }
 
-    const left = computeLegSeries(0.0, hipX, hipY, true);
-    const right = computeLegSeries(0.5, hipX, hipY, false);
+    const left = computeLegSeries(0.0, hipX, hipY);
+    const right = computeLegSeries(0.5, hipX, hipY);
 
     DATA.hipX = hipX;
     DATA.hipY = hipY;
     DATA.left = left;
     DATA.right = right;
 
-    DATA.minX = Math.min(...hipX) - 0.4;
-    DATA.maxX = Math.max(...hipX) + 0.4;
+    DATA.minX = WORLD_MIN_X;
+    DATA.maxX = WORLD_MAX_X;
     DATA.minY = -0.05;
     DATA.maxY = hipHeight + TORSO_LEN + 0.15;
 
-    const mean = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;
-    const q1m = mean(left.q1deg);
-    const q2m = mean(left.q2deg);
-    const q3m = mean(left.q3deg);
-    DATA.Lq1c = left.q1deg.map((v) => v - q1m);
-    DATA.Lq2c = left.q2deg.map((v) => v - q2m);
-    DATA.Lq3c = left.q3deg.map((v) => v - q3m);
+    DATA.Lq1 = left.q1deg;
+    DATA.Lq2 = left.q2deg;
+    DATA.Lq3 = left.q3deg;
   }
 
-  function computeLegSeries(offset, hipX, hipY, isLeft) {
+  function computeLegSeries(offset, hipX, hipY) {
     const q1 = new Array(N);
     const q2 = new Array(N);
     const q3 = new Array(N);
@@ -162,12 +163,6 @@
     const tx = new Array(N);
     const ty = new Array(N);
 
-    const refPhase = moveForward ? 0.5 : 0.0;
-    const refAngles = gaitAngles((refPhase + offset) % 1.0);
-    const refQ1 = (refAngles.hip - 90) * (Math.PI / 180);
-    const refQ2 = refAngles.knee * (Math.PI / 180);
-    const refQ3 = refAngles.ankle * (Math.PI / 180);
-    const footOffset = -(refQ1 + refQ2 + refQ3);
     for (let i = 0; i < N; i += 1) {
       const phase = ((T_ARR[i] / T) + offset) % 1.0;
       const angles = gaitAngles(phase);
@@ -178,15 +173,16 @@
 
       const q1i = (hipFlex - 90) * (Math.PI / 180);
       const q2i = kneeFlex * (Math.PI / 180);
-      let q3i = ankleRel * (Math.PI / 180);
-      q3i += footOffset;
+      // Treat ankle keyframe as target foot orientation vs horizontal.
+      const footTheta = ankleRel * (Math.PI / 180);
+      const q3i = footTheta - (q1i + q2i);
 
       q1[i] = q1i;
       q2[i] = q2i;
       q3[i] = q3i;
       q1deg[i] = hipFlex;
       q2deg[i] = kneeFlex;
-      q3deg[i] = ankleRel + (footOffset * 180 / Math.PI);
+      q3deg[i] = ankleRel;
 
       const kneeX = hipX[i] + L1 * Math.cos(q1i);
       const kneeY = hipY[i] + L1 * Math.sin(q1i);
@@ -379,14 +375,14 @@
     ctx.fillStyle = "#fbfaf8";
     ctx.fillRect(0, 0, width, height);
 
-    if (!DATA.Lq1c) {
+    if (!DATA.Lq1) {
       return;
     }
 
     const panel = { width, height };
-    drawAnglePanel(ctx, DATA.Lq1c, { ...panel, index: 0 }, "#1564a6", "Left hip (deg, centered)");
-    drawAnglePanel(ctx, DATA.Lq2c, { ...panel, index: 1 }, "#c06030", "Left knee (deg, centered)");
-    drawAnglePanel(ctx, DATA.Lq3c, { ...panel, index: 2 }, "#2b7a4b", "Left ankle (deg, centered)");
+    drawAnglePanel(ctx, DATA.Lq1, { ...panel, index: 0 }, "#1564a6", "Left hip (deg)");
+    drawAnglePanel(ctx, DATA.Lq2, { ...panel, index: 1 }, "#c06030", "Left knee (deg)");
+    drawAnglePanel(ctx, DATA.Lq3, { ...panel, index: 2 }, "#2b7a4b", "Left ankle (deg)");
   }
 
   function render() {
@@ -449,6 +445,12 @@
     render();
   });
 
+  elements.interpMode.addEventListener("change", () => {
+    interpMode = elements.interpMode.value;
+    recomputeAll();
+    render();
+  });
+
   elements.modeBtn.addEventListener("click", () => {
     phaseMode = !phaseMode;
     elements.modeBtn.textContent = phaseMode ? "Continuous" : "Phase Mode";
@@ -474,6 +476,7 @@
   bindSlider(elements.stepLen, "step_len");
 
   moveForward = !(elements.directionBtn.textContent.trim().toLowerCase() === "forwards");
+  interpMode = elements.interpMode.value;
   //phaseMode = elements.modeBtn.textContent.trim().toLowerCase().includes("phase");
   elements.nextPhaseBtn.disabled = !phaseMode;
   if (phaseMode) {
