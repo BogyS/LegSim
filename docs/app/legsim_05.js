@@ -193,24 +193,15 @@
     return Math.max(0.2, step);
   }
 
-  function legMinRelativeY(phase, angles, geom) {
+  function legToeBreakRelativeY(angles, geom) {
     const q1 = (angles.hip - 90) * (Math.PI / 180);
     const q2 = angles.knee * (Math.PI / 180);
     const footTheta = angles.ankle * (Math.PI / 180);
-    const q3 = footTheta - (q1 + q2);
-    const footAng = q1 + q2 + q3;
+    const footAng = footTheta;
 
-    const kneeY = geom.l1 * Math.sin(q1);
-    const ankleY = kneeY + geom.l2 * Math.sin(q1 + q2);
-    const heelY = ankleY - geom.heelBack * Math.sin(footAng);
+    const ankleY = geom.l1 * Math.sin(q1) + geom.l2 * Math.sin(q1 + q2);
     const mtpY = ankleY + geom.mtpFwd * Math.sin(footAng);
-    let toeY = mtpY + geom.toeTipFwd * Math.sin(footAng);
-
-    if (isToeFlatPhase(phase)) {
-      toeY = mtpY;
-    }
-
-    return Math.min(0, kneeY, ankleY, heelY, mtpY, toeY);
+    return mtpY;
   }
 
   function recomputeAll() {
@@ -231,8 +222,8 @@
       const anglesL = gaitAngles(phaseL);
       const anglesR = gaitAngles(phaseR);
 
-      const reqL = -legMinRelativeY(phaseL, anglesL, geom);
-      const reqR = -legMinRelativeY(phaseR, anglesR, geom);
+      const reqL = -legToeBreakRelativeY(anglesL, geom);
+      const reqR = -legToeBreakRelativeY(anglesR, geom);
       const requiredHipY = Math.max(reqL, reqR) + groundMargin;
       const dy = Math.max(0, requiredHipY - hipYBase);
       hipY[i] = hipYBase + dy;
@@ -310,29 +301,21 @@
       ay[i] = ankleY;
       mx[i] = ankleX + geom.mtpFwd * Math.cos(footAng);
       my[i] = ankleY + geom.mtpFwd * Math.sin(footAng);
-      if (isToeFlatPhase(phase)) {
-        // Keep toe segment horizontal in local mid-to-terminal stance.
+      const toeYRaw = my[i] + geom.toeTipFwd * Math.sin(footAng);
+      if (toeYRaw < my[i]) {
+        // If the toe would dip below the toe-break point, clamp it flat.
         const toeDir = Math.sign(Math.cos(footAng)) || 1;
         tx[i] = mx[i] + (geom.toeTipFwd * toeDir);
         ty[i] = my[i];
       } else {
         tx[i] = mx[i] + geom.toeTipFwd * Math.cos(footAng);
-        ty[i] = my[i] + geom.toeTipFwd * Math.sin(footAng);
+        ty[i] = toeYRaw;
       }
       hx[i] = ankleX - geom.heelBack * Math.cos(footAng);
       hy[i] = ankleY - geom.heelBack * Math.sin(footAng);
     }
 
     return { q1, q2, q3, q1deg, q2deg, q3deg, kx, ky, ax, ay, mx, my, hx, hy, tx, ty };
-  }
-
-  function isToeFlatPhase(phase) {
-    const p = ((phase % 1) + 1) % 1;
-    if (moveForward) {
-      return p >= 0.3 && p <= 0.5;
-    }
-    // In backward mode, use the half-cycle-shifted stance window.
-    return p >= 0.8;
   }
 
   function normalizeCanvas(canvas, ctx) {
