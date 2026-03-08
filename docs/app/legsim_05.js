@@ -16,6 +16,7 @@
   const BASE_L2 = 0.43;
   const BASE_FOOT_TOTAL = 0.265;
   const BASE_HEEL_BACK = 0.06;
+  const BASE_MTP_FWD = 0.105;
   const BASE_TORSO_LEN = 0.55;
   const WORLD_MIN_X = -0.4;
   const WORLD_MAX_X = 2.5;
@@ -169,10 +170,12 @@
     const l2 = BASE_L2 * scale;
     const footTotal = BASE_FOOT_TOTAL * scale;
     const heelBack = BASE_HEEL_BACK * scale;
+    const mtpFwd = BASE_MTP_FWD * scale;
     return {
       l1,
       l2,
-      toeFwd: footTotal - heelBack,
+      mtpFwd,
+      toeTipFwd: Math.max(0.02, footTotal - mtpFwd),
       heelBack,
       torsoLen: BASE_TORSO_LEN * scale,
       hipHeight: l1 + l2,
@@ -236,6 +239,8 @@
     const ky = new Array(N);
     const ax = new Array(N);
     const ay = new Array(N);
+    const mx = new Array(N);
+    const my = new Array(N);
     const hx = new Array(N);
     const hy = new Array(N);
     const tx = new Array(N);
@@ -272,13 +277,15 @@
       ky[i] = kneeY;
       ax[i] = ankleX;
       ay[i] = ankleY;
-      tx[i] = ankleX + geom.toeFwd * Math.cos(footAng);
-      ty[i] = ankleY + geom.toeFwd * Math.sin(footAng);
+      mx[i] = ankleX + geom.mtpFwd * Math.cos(footAng);
+      my[i] = ankleY + geom.mtpFwd * Math.sin(footAng);
+      tx[i] = mx[i] + geom.toeTipFwd * Math.cos(footAng);
+      ty[i] = my[i] + geom.toeTipFwd * Math.sin(footAng);
       hx[i] = ankleX - geom.heelBack * Math.cos(footAng);
       hy[i] = ankleY - geom.heelBack * Math.sin(footAng);
     }
 
-    return { q1, q2, q3, q1deg, q2deg, q3deg, kx, ky, ax, ay, hx, hy, tx, ty };
+    return { q1, q2, q3, q1deg, q2deg, q3deg, kx, ky, ax, ay, mx, my, hx, hy, tx, ty };
   }
 
   function normalizeCanvas(canvas, ctx) {
@@ -345,12 +352,14 @@
     ctx.strokeStyle = "#2b7a4b";
     ctx.beginPath();
     ctx.moveTo(mapX(left.hx[i]), mapY(left.hy[i]));
+    ctx.lineTo(mapX(left.mx[i]), mapY(left.my[i]));
     ctx.lineTo(mapX(left.tx[i]), mapY(left.ty[i]));
     ctx.stroke();
 
     ctx.strokeStyle = "#1a1a1a";
     ctx.beginPath();
     ctx.moveTo(mapX(right.hx[i]), mapY(right.hy[i]));
+    ctx.lineTo(mapX(right.mx[i]), mapY(right.my[i]));
     ctx.lineTo(mapX(right.tx[i]), mapY(right.ty[i]));
     ctx.stroke();
 
@@ -365,9 +374,11 @@
     dot(left.kx[i], left.ky[i]);
     ctx.fillStyle = "#2b7a4b";
     dot(left.ax[i], left.ay[i]);
+    dot(left.mx[i], left.my[i]);
     ctx.fillStyle = "#1a1a1a";
     dot(right.kx[i], right.ky[i]);
     dot(right.ax[i], right.ay[i]);
+    dot(right.mx[i], right.my[i]);
 
     ctx.strokeStyle = "#1a1a1a";
     ctx.lineWidth = 3;
