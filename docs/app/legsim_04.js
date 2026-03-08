@@ -197,7 +197,8 @@
 
     const hipX = new Array(N);
     const hipY = new Array(N);
-    const v = (stepLen / T) * STATE.speed;
+    // Speed factor should change only playback rate, not spatial step size.
+    const v = (stepLen / T);
     for (let i = 0; i < N; i += 1) {
       hipX[i] = moveForward ? (v * T_ARR[i]) : (v * (TOTAL_TIME - T_ARR[i]));
       hipY[i] = hipHeight;
