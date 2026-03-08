@@ -34,6 +34,7 @@
     resetBtn: document.getElementById("sim-reset"),
     directionBtn: document.getElementById("sim-direction"),
     modeBtn: document.getElementById("sim-mode"),
+    prevPhaseBtn: document.getElementById("sim-prev-phase"),
     nextPhaseBtn: document.getElementById("sim-next-phase"),
     interpMode: document.getElementById("sim-interp-mode"),
     humanHeight: document.getElementById("sim-human-height"),
@@ -628,6 +629,7 @@
   elements.modeBtn.addEventListener("click", () => {
     phaseMode = !phaseMode;
     elements.modeBtn.textContent = phaseMode ? "Continuous" : "Phase Mode";
+    elements.prevPhaseBtn.disabled = !phaseMode;
     elements.nextPhaseBtn.disabled = !phaseMode;
     if (!phaseMode) {
       lastTick = 0;
@@ -653,9 +655,23 @@
     render();
   });
 
+  elements.prevPhaseBtn.addEventListener("click", () => {
+    if (!phaseMode) {
+      return;
+    }
+    phaseIndex = (phaseIndex - 1 + GAIT_PHASES.length) % GAIT_PHASES.length;
+    if (phaseIndex === GAIT_PHASES.length - 1) {
+      currentStep = (currentStep - 1 + NUM_STEPS) % NUM_STEPS;
+    }
+    currentPhase = GAIT_PHASES[phaseIndex];
+    frame = stepPhaseToFrame(currentStep, currentPhase);
+    render();
+  });
+
   moveForward = !(elements.directionBtn.textContent.trim().toLowerCase() === "forwards");
   interpMode = elements.interpMode.value;
   //phaseMode = elements.modeBtn.textContent.trim().toLowerCase().includes("phase");
+  elements.prevPhaseBtn.disabled = !phaseMode;
   elements.nextPhaseBtn.disabled = !phaseMode;
   if (phaseMode) {
     frame = stepPhaseToFrame(currentStep, GAIT_PHASES[phaseIndex]);
