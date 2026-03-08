@@ -37,6 +37,7 @@
     interpMode: document.getElementById("sim-interp-mode"),
     humanHeight: document.getElementById("sim-human-height"),
     speed: document.getElementById("sim-speed"),
+    phaseStatus: document.getElementById("sim-phase-status"),
     humanHeightVal: document.getElementById("sim-human-height-val"),
     hipHeightVal: document.getElementById("sim-hip-height-val"),
     stepLenVal: document.getElementById("sim-step-len-val"),
@@ -100,6 +101,16 @@
   ];
 
   const GAIT_PHASES = GAIT_KEYS_FORWARD.map((k) => k.p);
+  const PHASE_INFO = [
+    "Initial Contact: heel strikes the ground and prepares weight acceptance.",
+    "Loading Response: body weight transfers onto the left leg, knee starts flexing.",
+    "Mid Stance: body progresses over the supporting leg with postural control.",
+    "Terminal Stance: heel rises and propulsion preparation begins.",
+    "Pre Swing (Toe-off): final push-off as the foot leaves the ground.",
+    "Initial Swing: thigh advances and knee flexes for toe clearance.",
+    "Mid Swing: shank advances as the leg passes the opposite side.",
+    "Terminal Swing: extension prepares the next initial contact.",
+  ];
 
   function normFrame(x) {
     const n = Math.floor(x) % N;
@@ -452,9 +463,19 @@
     drawAnglePanel(ctx, DATA.Lq3, { ...panel, index: 2 }, "#2b7a4b", "Left ankle (deg)");
   }
 
+  function updatePhaseStatus() {
+    const fi = normFrame(frame);
+    const step = Math.floor(fi / FPS);
+    const phase = (fi - (step * FPS)) / (FPS - 1);
+    const phaseSlot = nearestPhaseIndex(phase);
+    elements.phaseStatus.textContent =
+      `Left step ${step + 1}/${NUM_STEPS} | Phase ${phase.toFixed(2)} (${phaseSlot + 1}/${GAIT_PHASES.length}) - ${PHASE_INFO[phaseSlot]}`;
+  }
+
   function render() {
     drawWalk();
     drawAngles();
+    updatePhaseStatus();
   }
 
   function tick(ts) {
