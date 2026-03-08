@@ -279,8 +279,15 @@
       ay[i] = ankleY;
       mx[i] = ankleX + geom.mtpFwd * Math.cos(footAng);
       my[i] = ankleY + geom.mtpFwd * Math.sin(footAng);
-      tx[i] = mx[i] + geom.toeTipFwd * Math.cos(footAng);
-      ty[i] = my[i] + geom.toeTipFwd * Math.sin(footAng);
+      if (phase >= 0.3 && phase <= 0.5) {
+        // Keep toe segment horizontal in local mid-to-terminal stance.
+        const toeDir = Math.sign(Math.cos(footAng)) || 1;
+        tx[i] = mx[i] + (geom.toeTipFwd * toeDir);
+        ty[i] = my[i];
+      } else {
+        tx[i] = mx[i] + geom.toeTipFwd * Math.cos(footAng);
+        ty[i] = my[i] + geom.toeTipFwd * Math.sin(footAng);
+      }
       hx[i] = ankleX - geom.heelBack * Math.cos(footAng);
       hy[i] = ankleY - geom.heelBack * Math.sin(footAng);
     }
@@ -353,6 +360,11 @@
     ctx.beginPath();
     ctx.moveTo(mapX(left.hx[i]), mapY(left.hy[i]));
     ctx.lineTo(mapX(left.mx[i]), mapY(left.my[i]));
+    ctx.stroke();
+
+    ctx.strokeStyle = "#1f9f60";
+    ctx.beginPath();
+    ctx.moveTo(mapX(left.mx[i]), mapY(left.my[i]));
     ctx.lineTo(mapX(left.tx[i]), mapY(left.ty[i]));
     ctx.stroke();
 
@@ -374,11 +386,9 @@
     dot(left.kx[i], left.ky[i]);
     ctx.fillStyle = "#2b7a4b";
     dot(left.ax[i], left.ay[i]);
-    dot(left.mx[i], left.my[i]);
     ctx.fillStyle = "#1a1a1a";
     dot(right.kx[i], right.ky[i]);
     dot(right.ax[i], right.ay[i]);
-    dot(right.mx[i], right.my[i]);
 
     ctx.strokeStyle = "#1a1a1a";
     ctx.lineWidth = 3;
