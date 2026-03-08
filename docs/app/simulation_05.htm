@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light" />
+  <title>LegSim Simulation 05</title>
+  <link rel="icon" href="../favicon.ico" />
+  <link rel="stylesheet" href="legsim.css" />
+  <style>
+    .sim05-title {
+      font-size: clamp(1.25rem, 1.7vw, 1.8rem);
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="hero">
+      <div class="hero-text">
+        <h2 class="sim05-title">Interactive Gait Simulation 05</h2>
+      </div>
+    </header>
+
+    <section class="card">
+      <p id="sim-phase-status" class="subhead">Left step 1/3 | Phase 0.00 (1/8)</p>
+    </section>
+
+    <section class="controls card">
+      <div class="control-group">
+        <label for="sim-human-height">Human height (m)</label>
+        <div class="slider-row">
+          <input id="sim-human-height" type="range" min="1.50" max="2.00" step="0.01" />
+          <span id="sim-human-height-val" class="value-badge"></span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label for="sim-speed">Speed factor</label>
+        <div class="slider-row">
+          <input id="sim-speed" type="range" min="0.5" max="2.0" step="0.1" />
+          <span id="sim-speed-val" class="value-badge"></span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Thigh length L1 (m)</label>
+        <div class="slider-row">
+          <span id="sim-l1-val" class="value-badge"></span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Shank length L2 (m)</label>
+        <div class="slider-row">
+          <span id="sim-l2-val" class="value-badge"></span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Step length (m, derived)</label>
+        <div class="slider-row">
+          <span id="sim-step-len-val" class="value-badge"></span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Hip height (m, fixed = L1 + L2)</label>
+        <div class="slider-row">
+          <span id="sim-hip-height-val" class="value-badge"></span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Playback</label>
+        <div class="button-row">
+          <button id="sim-pause" type="button">Pause</button>
+          <button id="sim-reset" type="button">Reset</button>
+          <a class="chip" href="../index.htm">Home</a>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Walking Direction</label>
+        <div class="button-row">
+          <button id="sim-direction" type="button">Backwards</button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Mode</label>
+        <div class="button-row">
+          <button id="sim-mode" type="button">Phase Mode</button>
+          <button id="sim-next-phase" type="button">Next Phase</button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label for="sim-interp-mode">Interpolation</label>
+        <select id="sim-interp-mode">
+          <option value="smoothstep" selected>Smoothstep</option>
+          <option value="linear">Linear</option>
+          <option value="step">Step / Discrete</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="plots">
+      <div class="card plot-card">
+        <header>
+          <h2>Walking View</h2>
+          <p>Two-leg motion with fixed world axes.</p>
+        </header>
+        <canvas id="sim-walk-canvas" width="900" height="520"></canvas>
+      </div>
+      <div class="card plot-card">
+        <header>
+          <h2>Left Leg Angles</h2>
+          <p>Three centered angle tracks with a shared time cursor.</p>
+        </header>
+        <canvas id="sim-angle-canvas" width="520" height="520"></canvas>
+      </div>
+    </section>
+  </main>
+
+  <script src="legsim_05.js"></script>
+</body>
+</html>
