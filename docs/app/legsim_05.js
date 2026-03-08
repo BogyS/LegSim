@@ -16,7 +16,7 @@
   const BASE_L2 = 0.43;
   const BASE_FOOT_TOTAL = 0.265;
   const BASE_HEEL_BACK = 0.06;
-  const BASE_MTP_FWD = 0.105;
+  const BASE_MTP_FWD = 0.16;
   const BASE_TORSO_LEN = 0.55;
   const WORLD_MIN_X = -0.3;
   const WORLD_MAX_X = 2.4;
