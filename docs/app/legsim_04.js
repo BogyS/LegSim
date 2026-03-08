@@ -52,6 +52,8 @@
   let phaseMode = false;
   let phaseIndex = 0;
   let interpMode = "smoothstep";
+  let currentStep = 0;
+  let currentPhase = 0;
   const STATE = { ...DEFAULTS };
 
   const STANCE_RATIO = 0.6;
@@ -99,8 +101,35 @@
 
   const GAIT_PHASES = GAIT_KEYS_FORWARD.map((k) => k.p);
 
-  function phaseToFrame(phase) {
-    return Math.round(Math.max(0, Math.min(1, phase)) * (FPS - 1));
+  function normFrame(x) {
+    const n = Math.floor(x) % N;
+    return n < 0 ? n + N : n;
+  }
+
+  function nearestPhaseIndex(phase) {
+    let best = 0;
+    let bestDist = Infinity;
+    for (let i = 0; i < GAIT_PHASES.length; i += 1) {
+      const d = Math.abs(GAIT_PHASES[i] - phase);
+      if (d < bestDist) {
+        bestDist = d;
+        best = i;
+      }
+    }
+    return best;
+  }
+
+  function stepPhaseToFrame(step, phase) {
+    const s = ((step % NUM_STEPS) + NUM_STEPS) % NUM_STEPS;
+    const p = Math.max(0, Math.min(1, phase));
+    const base = s * FPS;
+    return (base + Math.round(p * (FPS - 1))) % N;
+  }
+
+  function syncStepPhaseFromFrame() {
+    const fi = normFrame(frame);
+    currentStep = Math.floor(fi / FPS);
+    currentPhase = (fi - (currentStep * FPS)) / (FPS - 1);
   }
 
   function gaitAngles(phase) {
@@ -182,7 +211,6 @@
     DATA.stepLen = stepLen;
     DATA.hipHeight = hipHeight;
     DATA.geom = geom;
-    DATA.cycleDx = stepLen * STATE.speed;
   }
 
   function computeLegSeries(offset, hipX, hipY, geom) {
@@ -263,14 +291,8 @@
       return;
     }
 
-    const i = Math.floor(frame) % N;
-    let shiftX = 0;
-    if (phaseMode) {
-      const phase = GAIT_PHASES[phaseIndex];
-      const desiredHx = moveForward ? (DATA.cycleDx * phase) : (DATA.cycleDx * (1 - phase));
-      shiftX = desiredHx - DATA.hipX[i];
-    }
-    const mapX = (x) => ((x + shiftX) - DATA.minX) * (w / (DATA.maxX - DATA.minX));
+    const i = normFrame(frame);
+    const mapX = (x) => (x - DATA.minX) * (w / (DATA.maxX - DATA.minX));
     const mapY = (y) => h - (y - DATA.minY) * (h / (DATA.maxY - DATA.minY));
 
     ctx.strokeStyle = "#d9cbb7";
@@ -394,7 +416,7 @@
     ctx.font = "12px Manrope, sans-serif";
     ctx.fillText(label, left + 6, top + 14);
 
-    const fi = Math.floor(frame) % N;
+    const fi = normFrame(frame);
     const cursorX = mapX(fi);
     ctx.strokeStyle = "#1a1a1a";
     ctx.lineWidth = 1;
@@ -442,6 +464,7 @@
     const delta = ts - lastTick;
     if (!phaseMode && !paused && delta >= 1000 / FPS) {
       frame = (frame + STATE.speed) % N;
+      syncStepPhaseFromFrame();
       lastTick = ts;
     }
     render();
@@ -476,6 +499,8 @@
     paused = false;
     elements.pauseBtn.textContent = "Pause";
     frame = 0;
+    currentStep = 0;
+    currentPhase = 0;
     phaseIndex = 0;
     resetDefaults();
   });
@@ -484,6 +509,7 @@
     moveForward = !moveForward;
     elements.directionBtn.textContent = moveForward ? "Backwards" : "Forwards";
     recomputeAll();
+    syncStepPhaseFromFrame();
     updateLabels();
     render();
   });
@@ -491,6 +517,7 @@
   elements.interpMode.addEventListener("change", () => {
     interpMode = elements.interpMode.value;
     recomputeAll();
+    syncStepPhaseFromFrame();
     updateLabels();
     render();
   });
@@ -498,6 +525,7 @@
   elements.humanHeight.addEventListener("input", () => {
     STATE.humanHeight = Number(elements.humanHeight.value);
     recomputeAll();
+    syncStepPhaseFromFrame();
     updateLabels();
     render();
   });
@@ -505,6 +533,7 @@
   elements.speed.addEventListener("input", () => {
     STATE.speed = Number(elements.speed.value);
     recomputeAll();
+    syncStepPhaseFromFrame();
     updateLabels();
     render();
   });
@@ -516,7 +545,10 @@
     if (!phaseMode) {
       lastTick = 0;
     } else {
-      frame = phaseToFrame(GAIT_PHASES[phaseIndex]);
+      syncStepPhaseFromFrame();
+      phaseIndex = nearestPhaseIndex(currentPhase);
+      currentPhase = GAIT_PHASES[phaseIndex];
+      frame = stepPhaseToFrame(currentStep, currentPhase);
     }
     render();
   });
@@ -526,7 +558,11 @@
       return;
     }
     phaseIndex = (phaseIndex + 1) % GAIT_PHASES.length;
-    frame = phaseToFrame(GAIT_PHASES[phaseIndex]);
+    if (phaseIndex === 0) {
+      currentStep = (currentStep + 1) % NUM_STEPS;
+    }
+    currentPhase = GAIT_PHASES[phaseIndex];
+    frame = stepPhaseToFrame(currentStep, currentPhase);
     render();
   });
 
@@ -535,9 +571,10 @@
   //phaseMode = elements.modeBtn.textContent.trim().toLowerCase().includes("phase");
   elements.nextPhaseBtn.disabled = !phaseMode;
   if (phaseMode) {
-    frame = phaseToFrame(GAIT_PHASES[phaseIndex]);
+    frame = stepPhaseToFrame(currentStep, GAIT_PHASES[phaseIndex]);
   }
   resetDefaults();
+  syncStepPhaseFromFrame();
   updateLabels();
   render();
   window.addEventListener("resize", render);
