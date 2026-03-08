@@ -11,15 +11,18 @@
     T_ARR[i] = (i / FPS);
   }
 
-  const L1 = 0.45;
-  const L2 = 0.43;
-  const FOOT_TOTAL = 0.265;
-  const HEEL_BACK = 0.06;
-  const TOE_FWD = FOOT_TOTAL - HEEL_BACK;
-  const TORSO_LEN = 0.55;
+  const BASE_HEIGHT = 1.8;
+  const BASE_L1 = 0.45;
+  const BASE_L2 = 0.43;
+  const BASE_FOOT_TOTAL = 0.265;
+  const BASE_HEEL_BACK = 0.06;
+  const BASE_TORSO_LEN = 0.55;
   const WORLD_MIN_X = -0.4;
   const WORLD_MAX_X = 2.5;
-  const HIP_HEIGHT_FIXED = L1 + L2;
+  const DEFAULTS = {
+    humanHeight: 1.8,
+    speed: 1.0,
+  };
 
   const DATA = {};
 
@@ -32,8 +35,14 @@
     modeBtn: document.getElementById("sim-mode"),
     nextPhaseBtn: document.getElementById("sim-next-phase"),
     interpMode: document.getElementById("sim-interp-mode"),
+    humanHeight: document.getElementById("sim-human-height"),
+    speed: document.getElementById("sim-speed"),
+    humanHeightVal: document.getElementById("sim-human-height-val"),
     hipHeightVal: document.getElementById("sim-hip-height-val"),
     stepLenVal: document.getElementById("sim-step-len-val"),
+    l1Val: document.getElementById("sim-l1-val"),
+    l2Val: document.getElementById("sim-l2-val"),
+    speedVal: document.getElementById("sim-speed-val"),
   };
 
   let paused = false;
@@ -43,6 +52,7 @@
   let phaseMode = false;
   let phaseIndex = 0;
   let interpMode = "smoothstep";
+  const STATE = { ...DEFAULTS };
 
   const STANCE_RATIO = 0.6;
 
@@ -89,6 +99,10 @@
 
   const GAIT_PHASES = GAIT_KEYS_FORWARD.map((k) => k.p);
 
+  function phaseToFrame(phase) {
+    return Math.round(Math.max(0, Math.min(1, phase)) * (FPS - 1));
+  }
+
   function gaitAngles(phase) {
     const canonical = mapPhaseToCanonical(phase);
     const keys = moveForward ? GAIT_KEYS_FORWARD : GAIT_KEYS_BACKWARD;
@@ -109,31 +123,48 @@
     return { hip, knee, ankle };
   }
 
-  function deriveStepLength() {
+  function buildGeometry() {
+    const scale = STATE.humanHeight / BASE_HEIGHT;
+    const l1 = BASE_L1 * scale;
+    const l2 = BASE_L2 * scale;
+    const footTotal = BASE_FOOT_TOTAL * scale;
+    const heelBack = BASE_HEEL_BACK * scale;
+    return {
+      l1,
+      l2,
+      toeFwd: footTotal - heelBack,
+      heelBack,
+      torsoLen: BASE_TORSO_LEN * scale,
+      hipHeight: l1 + l2,
+    };
+  }
+
+  function deriveStepLength(geom) {
     const toX = (phase) => {
       const a = gaitAngles(phase);
       const q1 = (a.hip - 90) * (Math.PI / 180);
       const q2 = a.knee * (Math.PI / 180);
-      return L1 * Math.cos(q1) + L2 * Math.cos(q1 + q2);
+      return geom.l1 * Math.cos(q1) + geom.l2 * Math.cos(q1 + q2);
     };
     const step = Math.abs(toX(0.0) - toX(0.5));
     return Math.max(0.2, step);
   }
 
   function recomputeAll() {
-    const hipHeight = HIP_HEIGHT_FIXED;
-    const stepLen = deriveStepLength();
+    const geom = buildGeometry();
+    const hipHeight = geom.hipHeight;
+    const stepLen = deriveStepLength(geom);
 
     const hipX = new Array(N);
     const hipY = new Array(N);
-    const v = stepLen / T;
+    const v = (stepLen / T) * STATE.speed;
     for (let i = 0; i < N; i += 1) {
       hipX[i] = moveForward ? (v * T_ARR[i]) : (v * (TOTAL_TIME - T_ARR[i]));
       hipY[i] = hipHeight;
     }
 
-    const left = computeLegSeries(0.0, hipX, hipY);
-    const right = computeLegSeries(0.5, hipX, hipY);
+    const left = computeLegSeries(0.0, hipX, hipY, geom);
+    const right = computeLegSeries(0.5, hipX, hipY, geom);
 
     DATA.hipX = hipX;
     DATA.hipY = hipY;
@@ -143,16 +174,18 @@
     DATA.minX = WORLD_MIN_X;
     DATA.maxX = WORLD_MAX_X;
     DATA.minY = -0.05;
-    DATA.maxY = hipHeight + TORSO_LEN + 0.15;
+    DATA.maxY = hipHeight + geom.torsoLen + 0.15;
 
     DATA.Lq1 = left.q1deg;
     DATA.Lq2 = left.q2deg;
     DATA.Lq3 = left.q3deg;
     DATA.stepLen = stepLen;
     DATA.hipHeight = hipHeight;
+    DATA.geom = geom;
+    DATA.cycleDx = stepLen * STATE.speed;
   }
 
-  function computeLegSeries(offset, hipX, hipY) {
+  function computeLegSeries(offset, hipX, hipY, geom) {
     const q1 = new Array(N);
     const q2 = new Array(N);
     const q3 = new Array(N);
@@ -189,20 +222,20 @@
       q2deg[i] = kneeFlex;
       q3deg[i] = ankleRel;
 
-      const kneeX = hipX[i] + L1 * Math.cos(q1i);
-      const kneeY = hipY[i] + L1 * Math.sin(q1i);
-      const ankleX = kneeX + L2 * Math.cos(q1i + q2i);
-      const ankleY = kneeY + L2 * Math.sin(q1i + q2i);
+      const kneeX = hipX[i] + geom.l1 * Math.cos(q1i);
+      const kneeY = hipY[i] + geom.l1 * Math.sin(q1i);
+      const ankleX = kneeX + geom.l2 * Math.cos(q1i + q2i);
+      const ankleY = kneeY + geom.l2 * Math.sin(q1i + q2i);
       const footAng = q1i + q2i + q3i;
 
       kx[i] = kneeX;
       ky[i] = kneeY;
       ax[i] = ankleX;
       ay[i] = ankleY;
-      tx[i] = ankleX + TOE_FWD * Math.cos(footAng);
-      ty[i] = ankleY + TOE_FWD * Math.sin(footAng);
-      hx[i] = ankleX - HEEL_BACK * Math.cos(footAng);
-      hy[i] = ankleY - HEEL_BACK * Math.sin(footAng);
+      tx[i] = ankleX + geom.toeFwd * Math.cos(footAng);
+      ty[i] = ankleY + geom.toeFwd * Math.sin(footAng);
+      hx[i] = ankleX - geom.heelBack * Math.cos(footAng);
+      hy[i] = ankleY - geom.heelBack * Math.sin(footAng);
     }
 
     return { q1, q2, q3, q1deg, q2deg, q3deg, kx, ky, ax, ay, hx, hy, tx, ty };
@@ -230,8 +263,14 @@
       return;
     }
 
-    const i = frame;
-    const mapX = (x) => (x - DATA.minX) * (w / (DATA.maxX - DATA.minX));
+    const i = Math.floor(frame) % N;
+    let shiftX = 0;
+    if (phaseMode) {
+      const phase = GAIT_PHASES[phaseIndex];
+      const desiredHx = moveForward ? (DATA.cycleDx * phase) : (DATA.cycleDx * (1 - phase));
+      shiftX = desiredHx - DATA.hipX[i];
+    }
+    const mapX = (x) => ((x + shiftX) - DATA.minX) * (w / (DATA.maxX - DATA.minX));
     const mapY = (y) => h - (y - DATA.minY) * (h / (DATA.maxY - DATA.minY));
 
     ctx.strokeStyle = "#d9cbb7";
@@ -300,7 +339,7 @@
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.moveTo(mapX(hx), mapY(hy));
-    ctx.lineTo(mapX(hx), mapY(hy + TORSO_LEN));
+    ctx.lineTo(mapX(hx), mapY(hy + DATA.geom.torsoLen));
     ctx.stroke();
   }
 
@@ -355,7 +394,8 @@
     ctx.font = "12px Manrope, sans-serif";
     ctx.fillText(label, left + 6, top + 14);
 
-    const cursorX = mapX(frame);
+    const fi = Math.floor(frame) % N;
+    const cursorX = mapX(fi);
     ctx.strokeStyle = "#1a1a1a";
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -365,7 +405,7 @@
 
     ctx.fillStyle = "#1a1a1a";
     ctx.beginPath();
-    ctx.arc(cursorX, mapY(data[frame]), 3, 0, Math.PI * 2);
+    ctx.arc(cursorX, mapY(data[fi]), 3, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -401,7 +441,7 @@
     }
     const delta = ts - lastTick;
     if (!phaseMode && !paused && delta >= 1000 / FPS) {
-      frame = (frame + 1) % N;
+      frame = (frame + STATE.speed) % N;
       lastTick = ts;
     }
     render();
@@ -409,11 +449,20 @@
   }
 
   function updateLabels() {
-    elements.hipHeightVal.textContent = Number(DATA.hipHeight ?? HIP_HEIGHT_FIXED).toFixed(2);
-    elements.stepLenVal.textContent = Number(DATA.stepLen ?? deriveStepLength()).toFixed(2);
+    const geom = DATA.geom ?? buildGeometry();
+    elements.humanHeightVal.textContent = Number(STATE.humanHeight).toFixed(2);
+    elements.hipHeightVal.textContent = Number(DATA.hipHeight ?? geom.hipHeight).toFixed(2);
+    elements.stepLenVal.textContent = Number(DATA.stepLen ?? deriveStepLength(geom)).toFixed(2);
+    elements.l1Val.textContent = Number(geom.l1).toFixed(3);
+    elements.l2Val.textContent = Number(geom.l2).toFixed(3);
+    elements.speedVal.textContent = Number(STATE.speed).toFixed(1);
   }
 
   function resetDefaults() {
+    STATE.humanHeight = DEFAULTS.humanHeight;
+    STATE.speed = DEFAULTS.speed;
+    elements.humanHeight.value = String(STATE.humanHeight);
+    elements.speed.value = String(STATE.speed);
     recomputeAll();
     updateLabels();
   }
@@ -446,6 +495,20 @@
     render();
   });
 
+  elements.humanHeight.addEventListener("input", () => {
+    STATE.humanHeight = Number(elements.humanHeight.value);
+    recomputeAll();
+    updateLabels();
+    render();
+  });
+
+  elements.speed.addEventListener("input", () => {
+    STATE.speed = Number(elements.speed.value);
+    recomputeAll();
+    updateLabels();
+    render();
+  });
+
   elements.modeBtn.addEventListener("click", () => {
     phaseMode = !phaseMode;
     elements.modeBtn.textContent = phaseMode ? "Continuous" : "Phase Mode";
@@ -453,7 +516,7 @@
     if (!phaseMode) {
       lastTick = 0;
     } else {
-      frame = Math.round(GAIT_PHASES[phaseIndex] * (N - 1));
+      frame = phaseToFrame(GAIT_PHASES[phaseIndex]);
     }
     render();
   });
@@ -463,7 +526,7 @@
       return;
     }
     phaseIndex = (phaseIndex + 1) % GAIT_PHASES.length;
-    frame = Math.round(GAIT_PHASES[phaseIndex] * (N - 1));
+    frame = phaseToFrame(GAIT_PHASES[phaseIndex]);
     render();
   });
 
@@ -472,7 +535,7 @@
   //phaseMode = elements.modeBtn.textContent.trim().toLowerCase().includes("phase");
   elements.nextPhaseBtn.disabled = !phaseMode;
   if (phaseMode) {
-    frame = Math.round(GAIT_PHASES[phaseIndex] * (N - 1));
+    frame = phaseToFrame(GAIT_PHASES[phaseIndex]);
   }
   resetDefaults();
   updateLabels();
