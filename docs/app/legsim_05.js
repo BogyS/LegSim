@@ -374,6 +374,20 @@
     const left = DATA.left;
     const right = DATA.right;
 
+    ctx.strokeStyle = "rgba(26, 26, 26, 0.45)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let j = 0; j < DATA.hipX.length; j += 1) {
+      const x = mapX(DATA.hipX[j]);
+      const y = mapY(DATA.hipY[j]);
+      if (j === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+    }
+    ctx.stroke();
+
     ctx.lineWidth = 4;
     ctx.strokeStyle = "#1564a6";
     ctx.beginPath();
