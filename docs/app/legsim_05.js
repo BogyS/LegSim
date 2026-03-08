@@ -193,10 +193,6 @@
     return Math.max(0.2, step);
   }
 
-  function clamp01(x) {
-    return Math.max(0, Math.min(1, x));
-  }
-
   function legMinRelativeY(phase, angles, geom) {
     const q1 = (angles.hip - 90) * (Math.PI / 180);
     const q2 = angles.knee * (Math.PI / 180);
@@ -220,12 +216,11 @@
   function recomputeAll() {
     const geom = buildGeometry();
     const stepLen = deriveStepLength(geom);
-    const scale = geom.l1 / BASE_L1;
 
     const hipX = new Array(N);
     const hipY = new Array(N);
-    const topHipY = geom.hipHeight - (0.02 * scale);
-    const bottomHipY = topHipY - (0.05 * scale);
+    const hipYBase = geom.hipHeight;
+    const scale = geom.l1 / BASE_L1;
     const groundMargin = 0.002 * scale;
     // Speed factor should change only playback rate, not spatial step size.
     const v = (stepLen / T);
@@ -236,14 +231,11 @@
       const anglesL = gaitAngles(phaseL);
       const anglesR = gaitAngles(phaseR);
 
-      const spreadNorm = clamp01(Math.abs(anglesL.hip - anglesR.hip) / 70.0);
-      const desiredHipY = topHipY - ((topHipY - bottomHipY) * spreadNorm);
-
       const reqL = -legMinRelativeY(phaseL, anglesL, geom);
       const reqR = -legMinRelativeY(phaseR, anglesR, geom);
       const requiredHipY = Math.max(reqL, reqR) + groundMargin;
-
-      hipY[i] = Math.max(desiredHipY, requiredHipY);
+      const dy = Math.max(0, requiredHipY - hipYBase);
+      hipY[i] = hipYBase + dy;
     }
 
     const left = computeLegSeries(0.0, hipX, hipY, geom);
