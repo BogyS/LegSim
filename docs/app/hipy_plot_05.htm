@@ -76,7 +76,7 @@
         <strong>Simulation 05 HipY (first 60 frames)</strong>
         <a href="simulation_05.htm">Back to Simulation 05</a>
       </div>
-      <p class="muted">This chart uses the same joint tables and geometry rules as simulation_05 for one gait cycle.</p>
+      <p class="muted">This chart uses the same hip translation rule as simulation_05 (ground-safe shift based on toe-break/MTP).</p>
     </section>
 
     <section class="card">
@@ -171,29 +171,21 @@
         };
       }
 
-      function legMinRelativeY(phase, angles, geom) {
+      function legToeBreakRelativeY(angles, geom) {
         const q1 = (angles.hip - 90) * (Math.PI / 180);
         const q2 = angles.knee * (Math.PI / 180);
         const footTheta = angles.ankle * (Math.PI / 180);
-        const q3 = footTheta - (q1 + q2);
-        const footAng = q1 + q2 + q3;
-
-        const kneeY = geom.l1 * Math.sin(q1);
-        const ankleY = kneeY + geom.l2 * Math.sin(q1 + q2);
-        const heelY = ankleY - geom.heelBack * Math.sin(footAng);
+        const footAng = footTheta;
+        const ankleY = geom.l1 * Math.sin(q1) + geom.l2 * Math.sin(q1 + q2);
         const mtpY = ankleY + geom.mtpFwd * Math.sin(footAng);
-        let toeY = mtpY + geom.toeTipFwd * Math.sin(footAng);
-        if (phase >= 0.3 && phase <= 0.5) {
-          toeY = mtpY;
-        }
-        return Math.min(0, kneeY, ankleY, heelY, mtpY, toeY);
+        return mtpY;
       }
 
       function hipYAtPhase(phase, geom) {
         const left = phase % 1;
         const right = (phase + 0.5) % 1;
-        const reqL = -legMinRelativeY(left, gaitAngles(left), geom);
-        const reqR = -legMinRelativeY(right, gaitAngles(right), geom);
+        const reqL = -legToeBreakRelativeY(gaitAngles(left), geom);
+        const reqR = -legToeBreakRelativeY(gaitAngles(right), geom);
         const required = Math.max(reqL, reqR) + geom.groundMargin;
         return geom.hipHeight + Math.max(0, required - geom.hipHeight);
       }

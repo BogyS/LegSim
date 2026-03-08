@@ -16,6 +16,13 @@
     #sim-angle-canvas {
       height: 520px;
     }
+    .sim05-link {
+      display: inline-block;
+      margin-top: 10px;
+    }
+    .sim05-link + .sim05-link {
+      margin-left: 8px;
+    }
   </style>
 </head>
 <body>
@@ -80,7 +87,6 @@
         <div class="button-row">
           <button id="sim-pause" type="button">Pause</button>
           <button id="sim-reset" type="button">Reset</button>
-          <a class="chip" href="../index.htm">Home</a>
         </div>
       </div>
 
@@ -106,6 +112,8 @@
           <option value="linear">Linear</option>
           <option value="step">Step / Discrete</option>
         </select>
+        <a class="chip sim05-link" href="hipy_plot_05.htm">Pelvis Plot</a>
+        <a class="chip sim05-link" href="../index.htm">Home</a>
       </div>
     </section>
 
