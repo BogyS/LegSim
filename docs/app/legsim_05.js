@@ -18,8 +18,8 @@
   const BASE_HEEL_BACK = 0.06;
   const BASE_MTP_FWD = 0.105;
   const BASE_TORSO_LEN = 0.55;
-  const WORLD_MIN_X = -0.4;
-  const WORLD_MAX_X = 2.5;
+  const WORLD_MIN_X = -0.3;
+  const WORLD_MAX_X = 2.4;
   const DEFAULTS = {
     humanHeight: 1.8,
     speed: 1.0,
@@ -358,11 +358,15 @@
 
     const i = normFrame(frame);
     const mapX = (x) => (x - DATA.minX) * (w / (DATA.maxX - DATA.minX));
-    const mapY = (y) => h - (y - DATA.minY) * (h / (DATA.maxY - DATA.minY));
+    const topPad = 16;
+    const groundBottomPad = 28;
+    const groundY = h - groundBottomPad;
+    const ySpan = Math.max(0.2, DATA.maxY);
+    const pxPerMeter = (groundY - topPad) / ySpan;
+    const mapY = (y) => groundY - (y * pxPerMeter);
 
     ctx.strokeStyle = "#d9cbb7";
     ctx.lineWidth = 2;
-    const groundY = mapY(0);
     ctx.beginPath();
     ctx.moveTo(20, groundY);
     ctx.lineTo(w - 20, groundY);
