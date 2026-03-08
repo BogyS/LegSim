@@ -193,18 +193,57 @@
     return Math.max(0.2, step);
   }
 
+  function clamp01(x) {
+    return Math.max(0, Math.min(1, x));
+  }
+
+  function legMinRelativeY(phase, angles, geom) {
+    const q1 = (angles.hip - 90) * (Math.PI / 180);
+    const q2 = angles.knee * (Math.PI / 180);
+    const footTheta = angles.ankle * (Math.PI / 180);
+    const q3 = footTheta - (q1 + q2);
+    const footAng = q1 + q2 + q3;
+
+    const kneeY = geom.l1 * Math.sin(q1);
+    const ankleY = kneeY + geom.l2 * Math.sin(q1 + q2);
+    const heelY = ankleY - geom.heelBack * Math.sin(footAng);
+    const mtpY = ankleY + geom.mtpFwd * Math.sin(footAng);
+    let toeY = mtpY + geom.toeTipFwd * Math.sin(footAng);
+
+    if (phase >= 0.3 && phase <= 0.5) {
+      toeY = mtpY;
+    }
+
+    return Math.min(0, kneeY, ankleY, heelY, mtpY, toeY);
+  }
+
   function recomputeAll() {
     const geom = buildGeometry();
-    const hipHeight = geom.hipHeight;
     const stepLen = deriveStepLength(geom);
+    const scale = geom.l1 / BASE_L1;
 
     const hipX = new Array(N);
     const hipY = new Array(N);
+    const topHipY = geom.hipHeight - (0.02 * scale);
+    const bottomHipY = topHipY - (0.05 * scale);
+    const groundMargin = 0.002 * scale;
     // Speed factor should change only playback rate, not spatial step size.
     const v = (stepLen / T);
     for (let i = 0; i < N; i += 1) {
       hipX[i] = moveForward ? (v * T_ARR[i]) : (v * (TOTAL_TIME - T_ARR[i]));
-      hipY[i] = hipHeight;
+      const phaseL = ((T_ARR[i] / T) + 0.0) % 1.0;
+      const phaseR = ((T_ARR[i] / T) + 0.5) % 1.0;
+      const anglesL = gaitAngles(phaseL);
+      const anglesR = gaitAngles(phaseR);
+
+      const spreadNorm = clamp01(Math.abs(anglesL.hip - anglesR.hip) / 70.0);
+      const desiredHipY = topHipY - ((topHipY - bottomHipY) * spreadNorm);
+
+      const reqL = -legMinRelativeY(phaseL, anglesL, geom);
+      const reqR = -legMinRelativeY(phaseR, anglesR, geom);
+      const requiredHipY = Math.max(reqL, reqR) + groundMargin;
+
+      hipY[i] = Math.max(desiredHipY, requiredHipY);
     }
 
     const left = computeLegSeries(0.0, hipX, hipY, geom);
@@ -218,13 +257,13 @@
     DATA.minX = WORLD_MIN_X;
     DATA.maxX = WORLD_MAX_X;
     DATA.minY = -0.05;
-    DATA.maxY = hipHeight + geom.torsoLen + 0.15;
+    DATA.maxY = Math.max(...hipY) + geom.torsoLen + 0.15;
 
     DATA.Lq1 = left.q1deg;
     DATA.Lq2 = left.q2deg;
     DATA.Lq3 = left.q3deg;
     DATA.stepLen = stepLen;
-    DATA.hipHeight = hipHeight;
+    DATA.hipHeight = hipY.reduce((acc, y) => acc + y, 0) / hipY.length;
     DATA.geom = geom;
   }
 
