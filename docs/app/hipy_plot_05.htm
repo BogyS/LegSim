@@ -123,6 +123,7 @@
       const ctx = canvas.getContext("2d");
       let lastSeries = [];
       let lastLayout = null;
+      let hoverFrame = null;
 
       const lerp = (a, b, t) => a + (b - a) * t;
       const smoothstep = (s) => {
@@ -278,7 +279,23 @@
           ctx.fillText(String(t), x - 7, h - 10);
         }
 
-        lastLayout = { ox, oy, drawW, drawH, x0Data, x1Data, y0Data, y1Data, uniformScale };
+        lastLayout = { ox, oy, drawW, drawH, x0Data, x1Data, y0Data, y1Data, uniformScale, mapX, mapY };
+
+        if (hoverFrame !== null) {
+          const hx = mapX(hoverFrame / FPS);
+          const hy = mapY(series[hoverFrame]);
+          ctx.strokeStyle = "rgba(26, 26, 26, 0.55)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(hx, oy);
+          ctx.lineTo(hx, oy + drawH);
+          ctx.stroke();
+
+          ctx.fillStyle = "#1463a8";
+          ctx.beginPath();
+          ctx.arc(hx, hy, 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
 
       function refresh() {
@@ -290,6 +307,7 @@
         stats.textContent = `min ${min.toFixed(3)}  max ${max.toFixed(3)}  amp ${(max - min).toFixed(3)}`;
         draw(series);
         lastSeries = series;
+        hoverFrame = null;
         cursor.textContent = "frame -- | phase -- | y --";
       }
 
@@ -303,19 +321,25 @@
         const inBox =
           x >= lastLayout.ox &&
           x <= lastLayout.ox + lastLayout.drawW &&
-          y >= lastLayout.oy &&
-          y <= lastLayout.oy + lastLayout.drawH;
+          y >= 0 &&
+          y <= rect.height;
         if (!inBox) {
+          hoverFrame = null;
+          draw(lastSeries);
           cursor.textContent = "frame -- | phase -- | y --";
           return;
         }
         const phase = (x - lastLayout.ox) / lastLayout.uniformScale + lastLayout.x0Data;
         const frame = Math.max(0, Math.min(FPS - 1, Math.round(phase * FPS)));
+        hoverFrame = frame;
+        draw(lastSeries);
         const yv = lastSeries[frame];
         cursor.textContent = `frame ${frame} | phase ${(frame / FPS).toFixed(3)} | y ${yv.toFixed(4)} m`;
       });
 
       canvas.addEventListener("mouseleave", () => {
+        hoverFrame = null;
+        draw(lastSeries);
         cursor.textContent = "frame -- | phase -- | y --";
       });
 
