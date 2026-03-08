@@ -85,6 +85,7 @@
         <input id="height" type="range" min="1.50" max="2.00" step="0.01" value="1.80" />
         <span id="height-val" class="badge">1.80</span>
         <span id="stats" class="badge"></span>
+        <span id="cursor" class="badge">frame -- | phase -- | y --</span>
       </div>
       <canvas id="plot" width="920" height="360"></canvas>
     </section>
@@ -117,8 +118,11 @@
       const heightSlider = document.getElementById("height");
       const heightVal = document.getElementById("height-val");
       const stats = document.getElementById("stats");
+      const cursor = document.getElementById("cursor");
       const canvas = document.getElementById("plot");
       const ctx = canvas.getContext("2d");
+      let lastSeries = [];
+      let lastLayout = null;
 
       const lerp = (a, b, t) => a + (b - a) * t;
       const smoothstep = (s) => {
@@ -214,12 +218,21 @@
         const ph = h - pad.t - pad.b;
         const min = Math.min(...series);
         const max = Math.max(...series);
-        const span = Math.max(1e-6, max - min);
-        const y0 = min - span * 0.15;
-        const y1 = max + span * 0.15;
+        const ySpan = Math.max(1e-6, max - min);
+        const y0Data = min - ySpan * 0.15;
+        const y1Data = max + ySpan * 0.15;
+        const x0Data = 0;
+        const x1Data = (series.length - 1) / FPS;
+        const dataW = x1Data - x0Data;
+        const dataH = y1Data - y0Data;
+        const uniformScale = Math.min(pw / dataW, ph / dataH);
+        const drawW = dataW * uniformScale;
+        const drawH = dataH * uniformScale;
+        const ox = pad.l + (pw - drawW) * 0.5;
+        const oy = pad.t + (ph - drawH) * 0.5;
 
-        const mapX = (i) => pad.l + (i / (series.length - 1)) * pw;
-        const mapY = (v) => pad.t + (1 - ((v - y0) / (y1 - y0))) * ph;
+        const mapX = (phase) => ox + (phase - x0Data) * uniformScale;
+        const mapY = (v) => oy + (y1Data - v) * uniformScale;
 
         ctx.clearRect(0, 0, w, h);
         ctx.fillStyle = "#fbfaf8";
@@ -238,15 +251,15 @@
         ctx.lineWidth = 1;
         ctx.beginPath();
         const baselineY = mapY(series[0]);
-        ctx.moveTo(pad.l, baselineY);
-        ctx.lineTo(pad.l + pw, baselineY);
+        ctx.moveTo(ox, baselineY);
+        ctx.lineTo(ox + drawW, baselineY);
         ctx.stroke();
 
         ctx.strokeStyle = "#1463a8";
         ctx.lineWidth = 2;
         ctx.beginPath();
         for (let i = 0; i < series.length; i += 1) {
-          const x = mapX(i);
+          const x = mapX(i / FPS);
           const y = mapY(series[i]);
           if (i === 0) ctx.moveTo(x, y);
           else ctx.lineTo(x, y);
@@ -254,15 +267,18 @@
         ctx.stroke();
 
         for (let t = 0; t <= 60; t += 10) {
-          const x = mapX(Math.min(59, t));
+          const idx = Math.min(59, t);
+          const x = mapX(idx / FPS);
           ctx.strokeStyle = "#d9cbb7";
           ctx.beginPath();
-          ctx.moveTo(x, pad.t);
-          ctx.lineTo(x, pad.t + ph);
+          ctx.moveTo(x, oy);
+          ctx.lineTo(x, oy + drawH);
           ctx.stroke();
           ctx.fillStyle = "#5c5c5c";
           ctx.fillText(String(t), x - 7, h - 10);
         }
+
+        lastLayout = { ox, oy, drawW, drawH, x0Data, x1Data, y0Data, y1Data, uniformScale };
       }
 
       function refresh() {
@@ -273,7 +289,35 @@
         heightVal.textContent = h.toFixed(2);
         stats.textContent = `min ${min.toFixed(3)}  max ${max.toFixed(3)}  amp ${(max - min).toFixed(3)}`;
         draw(series);
+        lastSeries = series;
+        cursor.textContent = "frame -- | phase -- | y --";
       }
+
+      canvas.addEventListener("mousemove", (ev) => {
+        if (!lastLayout || lastSeries.length === 0) {
+          return;
+        }
+        const rect = canvas.getBoundingClientRect();
+        const x = ev.clientX - rect.left;
+        const y = ev.clientY - rect.top;
+        const inBox =
+          x >= lastLayout.ox &&
+          x <= lastLayout.ox + lastLayout.drawW &&
+          y >= lastLayout.oy &&
+          y <= lastLayout.oy + lastLayout.drawH;
+        if (!inBox) {
+          cursor.textContent = "frame -- | phase -- | y --";
+          return;
+        }
+        const phase = (x - lastLayout.ox) / lastLayout.uniformScale + lastLayout.x0Data;
+        const frame = Math.max(0, Math.min(FPS - 1, Math.round(phase * FPS)));
+        const yv = lastSeries[frame];
+        cursor.textContent = `frame ${frame} | phase ${(frame / FPS).toFixed(3)} | y ${yv.toFixed(4)} m`;
+      });
+
+      canvas.addEventListener("mouseleave", () => {
+        cursor.textContent = "frame -- | phase -- | y --";
+      });
 
       heightSlider.addEventListener("input", refresh);
       window.addEventListener("resize", refresh);
