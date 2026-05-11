@@ -9,53 +9,90 @@
   <link rel="stylesheet" href="legsim.css" />
   <style>
     .app {
-      padding-top: 16px;
-      gap: 14px;
+      padding-top: 10px;
+      padding-bottom: 24px;
+      gap: 10px;
     }
     .hero {
       grid-template-columns: 1fr;
-      gap: 8px;
+      gap: 4px;
     }
     .card {
-      padding: 12px;
+      padding: 10px;
     }
     .controls {
-      gap: 10px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px 10px;
     }
     .control-group label {
-      margin-bottom: 4px;
+      margin-bottom: 3px;
+      font-size: 0.9rem;
     }
     .subhead {
       margin: 0;
-      line-height: 1.15;
+      line-height: 1.1;
+      font-size: 0.92rem;
     }
     .sim06-title {
-      font-size: clamp(1.25rem, 1.7vw, 1.8rem);
+      font-size: clamp(1.05rem, 1.4vw, 1.45rem);
       margin: 0;
     }
     .sim06-version {
-      margin: 4px 0 0;
+      margin: 2px 0 0;
       color: var(--muted, #5c5c5c);
-      font-size: 0.9rem;
+      font-size: 0.8rem;
       line-height: 1.1;
     }
     #sim-bed-canvas,
     #sim-angle-canvas {
-      height: 520px;
+      height: 430px;
     }
     .sim06-links-row {
-      margin-left: auto;
       display: flex;
       gap: 8px;
     }
     .sim06-edit {
-      width: 84px;
-      padding: 6px 8px;
+      width: 72px;
+      padding: 5px 7px;
       border: 1px solid var(--border, #cdddf2);
       border-radius: 10px;
       background: #fff;
       font: inherit;
       text-align: right;
+    }
+    .slider-row {
+      gap: 8px;
+    }
+    .value-badge {
+      min-width: 50px;
+      padding: 5px 8px;
+      font-size: 0.84rem;
+    }
+    .control-group select,
+    .control-group button {
+      padding: 8px 10px;
+      font-size: 0.9rem;
+    }
+    .plot-card header {
+      margin-bottom: 8px;
+    }
+    .plot-card h2 {
+      margin: 0 0 2px;
+      font-size: 1rem;
+    }
+    .plot-card p {
+      font-size: 0.84rem;
+      line-height: 1.15;
+    }
+    @media (max-width: 1100px) {
+      .controls {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    @media (max-width: 760px) {
+      .controls {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
@@ -83,42 +120,6 @@
       </div>
 
       <div class="control-group">
-        <label for="sim-hip-max">Hip flexion max (deg)</label>
-        <div class="slider-row">
-          <input id="sim-hip-max" type="range" min="0" max="70" step="1" />
-          <span id="sim-hip-max-val" class="value-badge"></span>
-        </div>
-      </div>
-
-      <div class="control-group">
-        <label for="sim-knee-factor">Knee constraint</label>
-        <div class="slider-row">
-          <select id="sim-knee-factor">
-            <option value="-2" selected>-2 x hip</option>
-            <option value="-1">-1 x hip</option>
-            <option value="0">0 x hip</option>
-          </select>
-          <span id="sim-knee-max-val" class="value-badge"></span>
-        </div>
-      </div>
-
-      <div class="control-group">
-        <label for="sim-speed">Speed factor</label>
-        <div class="slider-row">
-          <input id="sim-speed" type="range" min="0.3" max="2.0" step="0.1" />
-          <span id="sim-speed-val" class="value-badge"></span>
-        </div>
-      </div>
-
-      <div class="control-group">
-        <label for="sim-cycle">Cycle position</label>
-        <div class="slider-row">
-          <input id="sim-cycle" type="range" min="0" max="1" step="0.001" />
-          <span id="sim-cycle-val" class="value-badge"></span>
-        </div>
-      </div>
-
-      <div class="control-group">
         <label for="sim-l1">Thigh length L1 (m)</label>
         <div class="slider-row">
           <input id="sim-l1" type="range" min="0.30" max="0.65" step="0.001" />
@@ -139,15 +140,46 @@
       </div>
 
       <div class="control-group">
-        <label>Playback</label>
-        <div class="button-row">
-          <button id="sim-pause" type="button">Pause</button>
-          <button id="sim-reset" type="button">Reset</button>
+        <label for="sim-speed">Speed factor</label>
+        <div class="slider-row">
+          <input id="sim-speed" type="range" min="0.3" max="2.0" step="0.1" />
+          <span id="sim-speed-val" class="value-badge"></span>
         </div>
       </div>
 
       <div class="control-group">
-        <div class="sim06-links-row">
+        <label for="sim-cycle">Cycle position</label>
+        <div class="slider-row">
+          <input id="sim-cycle" type="range" min="0" max="1" step="0.001" />
+          <span id="sim-cycle-val" class="value-badge"></span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label for="sim-knee-factor">Knee constraint</label>
+        <div class="slider-row">
+          <select id="sim-knee-factor">
+            <option value="-2" selected>-2 x hip</option>
+            <option value="-1">-1 x hip</option>
+            <option value="0">0 x hip</option>
+          </select>
+          <span id="sim-knee-max-val" class="value-badge"></span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label for="sim-hip-max">Hip flexion max (deg)</label>
+        <div class="slider-row">
+          <input id="sim-hip-max" type="range" min="0" max="70" step="1" />
+          <span id="sim-hip-max-val" class="value-badge"></span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Playback</label>
+        <div class="button-row">
+          <button id="sim-pause" type="button">Pause</button>
+          <button id="sim-reset" type="button">Reset</button>
           <a class="chip" href="../index.htm">Home</a>
         </div>
       </div>
