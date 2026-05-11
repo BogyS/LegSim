@@ -78,3 +78,24 @@ Latest Updates
 - Expected side effect of the new rule:
   - Hip Y can drop below `L1 + L2` (for 1.80 m, minimum around 0.8515 m),
   - The curve can show sharp transitions where the active limiting contact point switches (piecewise min behavior).
+
+Simulation 06 Summary
+- Simulation 06 was added as a separate supine leg-flexion variant, distinct from the gait simulations.
+- Core motion model:
+  - Single leg on a bed/table in lateral view.
+  - Hip and knee are the active joints.
+  - Foot remains constrained relative to the shank, and the leg cannot pass below the bed line.
+- Joint constraints and kinematics:
+  - Hip Y is fixed across the full cycle.
+  - Knee angle is derived from hip angle through a selectable constraint factor.
+  - Current selectable knee factors are `-2 x hip`, `-1 x hip`, and `0 x hip`.
+- Geometry / anthropometry:
+  - Foot geometry includes heel offset relative to the ankle joint instead of attaching directly at the heel.
+  - Human height, L1, and L2 now work bidirectionally:
+    - Changing height updates segment lengths using the current proportions.
+    - Changing L1 or L2 directly re-estimates height from leg-length ratio and updates displayed percentages.
+  - Direct numeric inputs were added for `Human height`, `L1`, and `L2`, alongside sliders.
+- Rendering / layout:
+  - Bed View now uses uniform metric scaling on X and Y, so visual angles and lengths are no longer distorted.
+  - The page layout was compacted vertically and the controls were reorganized into a fixed desktop grid.
+  - The current visible page label is `Version 06.6 - uniform bed scaling`.
