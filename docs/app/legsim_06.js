@@ -222,22 +222,29 @@
     ctx.fillStyle = "#fbfaf8";
     ctx.fillRect(0, 0, w, h);
 
-    const mapX = (x) => (x - WORLD_MIN_X) * (w / (WORLD_MAX_X - WORLD_MIN_X));
     const groundY = h - 30;
     const topPad = 16;
-    const pxPerMeter = (groundY - topPad) / Math.max(0.2, DATA.maxY);
-    const mapY = (y) => groundY - (y * pxPerMeter);
+    const availableH = groundY - topPad;
+    const xSpan = WORLD_MAX_X - WORLD_MIN_X;
+    const ySpan = Math.max(0.2, DATA.maxY - DATA.minY);
+    const scaleX = (w - 40) / xSpan;
+    const scaleY = availableH / ySpan;
+    const pxPerMeter = Math.min(scaleX, scaleY);
+    const drawingWidth = xSpan * pxPerMeter;
+    const leftPad = (w - drawingWidth) * 0.5;
+    const mapX = (x) => leftPad + ((x - WORLD_MIN_X) * pxPerMeter);
+    const mapY = (y) => groundY - ((y - DATA.minY) * pxPerMeter);
 
     ctx.strokeStyle = "#d9cbb7";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(20, groundY);
-    ctx.lineTo(w - 20, groundY);
+    ctx.moveTo(leftPad, mapY(0));
+    ctx.lineTo(leftPad + drawingWidth, mapY(0));
     ctx.stroke();
 
     ctx.fillStyle = "#5c5c5c";
     ctx.font = "12px Manrope, sans-serif";
-    ctx.fillText("Bed line", 24, groundY - 8);
+    ctx.fillText("Bed line", leftPad + 4, mapY(0) - 8);
 
     const pose = DATA.pose;
     ctx.lineWidth = 4;
