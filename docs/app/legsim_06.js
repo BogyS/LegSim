@@ -21,7 +21,7 @@
   const DEFAULTS = {
     humanHeight: 1.8,
     hipMaxDeg: 35,
-    kneeMaxDeg: 110,
+    kneeFactor: -2,
     speed: 1.0,
     cycle: 0.0,
   };
@@ -33,7 +33,7 @@
     resetBtn: document.getElementById("sim-reset"),
     humanHeight: document.getElementById("sim-human-height"),
     hipMax: document.getElementById("sim-hip-max"),
-    kneeMax: document.getElementById("sim-knee-max"),
+    kneeFactor: document.getElementById("sim-knee-factor"),
     speed: document.getElementById("sim-speed"),
     cycle: document.getElementById("sim-cycle"),
     status: document.getElementById("sim-status"),
@@ -92,12 +92,11 @@
   function computeAngles(cyclePos) {
     const e = cycleEnvelope(cyclePos);
     const hip = STATE.hipMaxDeg * e;
-    const kneeGate = smoothstep(clamp01((e - 0.12) / 0.88));
-    const knee = STATE.kneeMaxDeg * kneeGate;
+    const knee = hip * STATE.kneeFactor;
     return { hip, knee };
   }
 
-  function computePose(cyclePos, geom) {
+  function computeRelativePose(cyclePos, geom) {
     const angles = computeAngles(cyclePos);
     const hipRad = angles.hip * (Math.PI / 180);
     const kneeRad = angles.knee * (Math.PI / 180);
@@ -114,14 +113,6 @@
     const heelYRel = ankleYRel - geom.heelBack * Math.sin(footTheta);
     const toeX = ankleX + geom.toeFwd * Math.cos(footTheta);
     const toeYRel = ankleYRel + geom.toeFwd * Math.sin(footTheta);
-    const minRelY = Math.min(hipYRel, kneeYRel, ankleYRel, heelYRel, toeYRel);
-    const yShift = geom.groundMargin - minRelY;
-    const hipY = hipYRel + yShift;
-    const kneeY = kneeYRel + yShift;
-    const ankleY = ankleYRel + yShift;
-    const heelY = heelYRel + yShift;
-    const toeY = toeYRel + yShift;
-    const clearance = Math.min(hipY, kneeY, ankleY, heelY, toeY);
 
     return {
       cyclePos,
@@ -129,14 +120,43 @@
       kneeDeg: angles.knee,
       footDeg: footTheta * (180 / Math.PI),
       hipX,
-      hipY,
+      hipYRel,
       kneeX,
-      kneeY,
+      kneeYRel,
       ankleX,
-      ankleY,
+      ankleYRel,
       heelX,
-      heelY,
+      heelYRel,
       toeX,
+      toeYRel,
+    };
+  }
+
+  function poseMinRelativeY(pose) {
+    return Math.min(pose.hipYRel, pose.kneeYRel, pose.ankleYRel, pose.heelYRel, pose.toeYRel);
+  }
+
+  function withFixedHipHeight(relativePose, hipY) {
+    const kneeY = relativePose.kneeYRel + hipY;
+    const ankleY = relativePose.ankleYRel + hipY;
+    const heelY = relativePose.heelYRel + hipY;
+    const toeY = relativePose.toeYRel + hipY;
+    const clearance = Math.min(hipY, kneeY, ankleY, heelY, toeY);
+
+    return {
+      cyclePos: relativePose.cyclePos,
+      hipDeg: relativePose.hipDeg,
+      kneeDeg: relativePose.kneeDeg,
+      footDeg: relativePose.footDeg,
+      hipX: relativePose.hipX,
+      hipY,
+      kneeX: relativePose.kneeX,
+      kneeY,
+      ankleX: relativePose.ankleX,
+      ankleY,
+      heelX: relativePose.heelX,
+      heelY,
+      toeX: relativePose.toeX,
       toeY,
       clearance,
     };
@@ -146,18 +166,23 @@
     const geom = buildGeometry();
     const hipSeries = new Array(N);
     const kneeSeries = new Array(N);
+    const relativePoses = new Array(N);
+    let fixedHipY = geom.groundMargin;
     for (let i = 0; i < N; i += 1) {
-      const pose = computePose(T_ARR[i], geom);
+      const pose = computeRelativePose(T_ARR[i], geom);
+      relativePoses[i] = pose;
       hipSeries[i] = pose.hipDeg;
       kneeSeries[i] = pose.kneeDeg;
+      fixedHipY = Math.max(fixedHipY, geom.groundMargin - poseMinRelativeY(pose));
     }
 
     DATA.geom = geom;
     DATA.hipSeries = hipSeries;
     DATA.kneeSeries = kneeSeries;
-    DATA.pose = computePose(cycle, geom);
+    DATA.fixedHipY = fixedHipY;
+    DATA.pose = withFixedHipHeight(computeRelativePose(cycle, geom), fixedHipY);
     DATA.minY = -0.03;
-    DATA.maxY = Math.max(geom.l1 + geom.l2 + geom.toeFwd + 0.12, 0.75);
+    DATA.maxY = Math.max(fixedHipY + geom.l1 + geom.l2 + geom.toeFwd + 0.12, 0.75);
   }
 
   function drawBedView() {
@@ -222,13 +247,15 @@
 
   function drawAnglePanel(ctx, data, panel, color, label) {
     const pad = 24;
-    const panelHeight = (panel.height - pad * 2) / 2;
-    const top = pad + panelHeight * panel.index;
-    const left = pad;
-    const width = panel.width - pad * 2;
-    const height = panelHeight - 12;
-    const lo = 0;
-    const hi = Math.max(...data, 10) + 8;
+    const left = pad + 18;
+    const width = panel.width - left - pad;
+    const axis = panel.index === 0
+      ? { lo: -10, hi: 90, ticks: [-10, 10, 30, 50, 70, 90] }
+      : { lo: -150, hi: 10, ticks: [10, -10, -30, -50, -70, -90, -110, -130, -150] };
+    const top = panel.top;
+    const height = panel.height;
+    const lo = axis.lo;
+    const hi = axis.hi;
 
     const mapX = (i) => left + (i / (N - 1)) * width;
     const mapY = (v) => top + height - ((v - lo) / (hi - lo)) * height;
@@ -238,6 +265,19 @@
     ctx.beginPath();
     ctx.rect(left, top, width, height);
     ctx.stroke();
+
+    ctx.strokeStyle = "#d9cbb7";
+    ctx.lineWidth = 1;
+    for (const deg of axis.ticks) {
+      const gy = mapY(deg);
+      ctx.beginPath();
+      ctx.moveTo(left, gy);
+      ctx.lineTo(left + width, gy);
+      ctx.stroke();
+      ctx.fillStyle = "#5c5c5c";
+      ctx.font = "11px Manrope, sans-serif";
+      ctx.fillText(`${deg}`, 4, gy + 4);
+    }
 
     ctx.strokeStyle = color;
     ctx.lineWidth = 2;
@@ -265,6 +305,7 @@
     ctx.fillStyle = "#1a1a1a";
     ctx.font = "12px Manrope, sans-serif";
     ctx.fillText(label, left + 6, top + 14);
+    ctx.fillText("(deg)", left + width - 38, top + 14);
   }
 
   function drawAngles() {
@@ -278,8 +319,19 @@
     ctx.fillStyle = "#fbfaf8";
     ctx.fillRect(0, 0, width, height);
 
-    drawAnglePanel(ctx, DATA.hipSeries, { width, height, index: 0 }, "#1564a6", "Hip flexion (deg)");
-    drawAnglePanel(ctx, DATA.kneeSeries, { width, height, index: 1 }, "#c06030", "Knee flexion (deg)");
+    const pad = 24;
+    const gap = 12;
+    const availableHeight = height - (pad * 2) - gap;
+    const hipRange = 100;
+    const kneeRange = 160;
+    const totalRange = hipRange + kneeRange;
+    const hipHeight = (availableHeight * hipRange / totalRange);
+    const kneeHeight = (availableHeight * kneeRange / totalRange);
+    const hipPanel = { width, index: 0, top: pad, height: hipHeight };
+    const kneePanel = { width, index: 1, top: pad + hipHeight + gap, height: kneeHeight };
+
+    drawAnglePanel(ctx, DATA.hipSeries, hipPanel, "#1564a6", "Hip flexion (deg)");
+    drawAnglePanel(ctx, DATA.kneeSeries, kneePanel, "#c06030", "Knee flexion (deg)");
   }
 
   function updateStatus() {
@@ -290,7 +342,7 @@
   }
 
   function render() {
-    DATA.pose = computePose(cycle, DATA.geom);
+    DATA.pose = withFixedHipHeight(computeRelativePose(cycle, DATA.geom), DATA.fixedHipY);
     drawBedView();
     drawAngles();
     updateStatus();
@@ -299,7 +351,7 @@
   function updateLabels() {
     elements.humanHeightVal.textContent = STATE.humanHeight.toFixed(2);
     elements.hipMaxVal.textContent = `${STATE.hipMaxDeg.toFixed(0)} deg`;
-    elements.kneeMaxVal.textContent = `${STATE.kneeMaxDeg.toFixed(0)} deg`;
+    elements.kneeMaxVal.textContent = `${(STATE.hipMaxDeg * STATE.kneeFactor).toFixed(0)} deg max`;
     elements.speedVal.textContent = STATE.speed.toFixed(1);
     elements.cycleVal.textContent = cycle.toFixed(2);
     elements.l1Val.textContent = `L1 ${DATA.geom.l1.toFixed(3)}`;
@@ -315,7 +367,7 @@
     cycle = DEFAULTS.cycle;
     elements.humanHeight.value = String(STATE.humanHeight);
     elements.hipMax.value = String(STATE.hipMaxDeg);
-    elements.kneeMax.value = String(STATE.kneeMaxDeg);
+    elements.kneeFactor.value = String(STATE.kneeFactor);
     elements.speed.value = String(STATE.speed);
     syncCycleInput();
     recomputeAll();
@@ -366,14 +418,14 @@
     handleParamChange();
   });
 
-  elements.kneeMax.addEventListener("input", () => {
-    STATE.kneeMaxDeg = Number(elements.kneeMax.value);
-    handleParamChange();
-  });
-
   elements.speed.addEventListener("input", () => {
     STATE.speed = Number(elements.speed.value);
     updateLabels();
+  });
+
+  elements.kneeFactor.addEventListener("change", () => {
+    STATE.kneeFactor = Number(elements.kneeFactor.value);
+    handleParamChange();
   });
 
   elements.cycle.addEventListener("input", () => {

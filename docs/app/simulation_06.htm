@@ -55,7 +55,7 @@
     <header class="hero">
       <div class="hero-text">
         <h2 class="sim06-title">Supine Knee Flexion Simulation 06</h2>
-        <p class="sim06-version">Version 06.2 - knee direction and foot-offset update</p>
+        <p class="sim06-version">Version 06.4 - selectable knee-angle constraint</p>
       </div>
     </header>
 
@@ -81,9 +81,13 @@
       </div>
 
       <div class="control-group">
-        <label for="sim-knee-max">Knee flexion max (deg)</label>
+        <label for="sim-knee-factor">Knee constraint</label>
         <div class="slider-row">
-          <input id="sim-knee-max" type="range" min="0" max="140" step="1" />
+          <select id="sim-knee-factor">
+            <option value="-2" selected>-2 x hip</option>
+            <option value="-1">-1 x hip</option>
+            <option value="0">0 x hip</option>
+          </select>
           <span id="sim-knee-max-val" class="value-badge"></span>
         </div>
       </div>
