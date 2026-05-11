@@ -12,7 +12,8 @@
   const BASE_HEIGHT = 1.8;
   const BASE_L1 = 0.45;
   const BASE_L2 = 0.43;
-  const BASE_FOOT = 0.18;
+  const BASE_FOOT_TOTAL = 0.265;
+  const BASE_HEEL_BACK = 0.06;
   const BED_MARGIN = 0.002;
   const WORLD_MIN_X = -0.15;
   const WORLD_MAX_X = 1.2;
@@ -82,7 +83,8 @@
     return {
       l1: BASE_L1 * scale,
       l2: BASE_L2 * scale,
-      foot: BASE_FOOT * scale,
+      heelBack: BASE_HEEL_BACK * scale,
+      toeFwd: (BASE_FOOT_TOTAL - BASE_HEEL_BACK) * scale,
       groundMargin: BED_MARGIN * scale,
     };
   }
@@ -100,27 +102,40 @@
     const hipRad = angles.hip * (Math.PI / 180);
     const kneeRad = angles.knee * (Math.PI / 180);
     const thighTheta = hipRad;
-    const shankTheta = hipRad + kneeRad;
+    const shankTheta = hipRad - kneeRad;
+    const footTheta = shankTheta + (Math.PI * 0.5);
     const hipX = 0.08;
-    const hipY = geom.groundMargin;
+    const hipYRel = 0;
     const kneeX = hipX + geom.l1 * Math.cos(thighTheta);
-    const kneeY = hipY + geom.l1 * Math.sin(thighTheta);
+    const kneeYRel = hipYRel + geom.l1 * Math.sin(thighTheta);
     const ankleX = kneeX + geom.l2 * Math.cos(shankTheta);
-    const ankleY = kneeY + geom.l2 * Math.sin(shankTheta);
-    const toeX = ankleX + geom.foot * Math.cos(shankTheta);
-    const toeY = ankleY + geom.foot * Math.sin(shankTheta);
-    const clearance = Math.min(hipY, kneeY, ankleY, toeY);
+    const ankleYRel = kneeYRel + geom.l2 * Math.sin(shankTheta);
+    const heelX = ankleX - geom.heelBack * Math.cos(footTheta);
+    const heelYRel = ankleYRel - geom.heelBack * Math.sin(footTheta);
+    const toeX = ankleX + geom.toeFwd * Math.cos(footTheta);
+    const toeYRel = ankleYRel + geom.toeFwd * Math.sin(footTheta);
+    const minRelY = Math.min(hipYRel, kneeYRel, ankleYRel, heelYRel, toeYRel);
+    const yShift = geom.groundMargin - minRelY;
+    const hipY = hipYRel + yShift;
+    const kneeY = kneeYRel + yShift;
+    const ankleY = ankleYRel + yShift;
+    const heelY = heelYRel + yShift;
+    const toeY = toeYRel + yShift;
+    const clearance = Math.min(hipY, kneeY, ankleY, heelY, toeY);
 
     return {
       cyclePos,
       hipDeg: angles.hip,
       kneeDeg: angles.knee,
+      footDeg: footTheta * (180 / Math.PI),
       hipX,
       hipY,
       kneeX,
       kneeY,
       ankleX,
       ankleY,
+      heelX,
+      heelY,
       toeX,
       toeY,
       clearance,
@@ -142,7 +157,7 @@
     DATA.kneeSeries = kneeSeries;
     DATA.pose = computePose(cycle, geom);
     DATA.minY = -0.03;
-    DATA.maxY = Math.max(geom.l1 + geom.l2 + geom.foot + 0.12, 0.75);
+    DATA.maxY = Math.max(geom.l1 + geom.l2 + geom.toeFwd + 0.12, 0.75);
   }
 
   function drawBedView() {
@@ -189,7 +204,8 @@
 
     ctx.strokeStyle = "#2b7a4b";
     ctx.beginPath();
-    ctx.moveTo(mapX(pose.ankleX), mapY(pose.ankleY));
+    ctx.moveTo(mapX(pose.heelX), mapY(pose.heelY));
+    ctx.lineTo(mapX(pose.ankleX), mapY(pose.ankleY));
     ctx.lineTo(mapX(pose.toeX), mapY(pose.toeY));
     ctx.stroke();
 
