@@ -48,6 +48,15 @@
       display: flex;
       gap: 8px;
     }
+    .sim06-edit {
+      width: 84px;
+      padding: 6px 8px;
+      border: 1px solid var(--border, #cdddf2);
+      border-radius: 10px;
+      background: #fff;
+      font: inherit;
+      text-align: right;
+    }
   </style>
 </head>
 <body>
@@ -55,7 +64,7 @@
     <header class="hero">
       <div class="hero-text">
         <h2 class="sim06-title">Supine Knee Flexion Simulation 06</h2>
-        <p class="sim06-version">Version 06.4 - selectable knee-angle constraint</p>
+        <p class="sim06-version">Version 06.5 - bidirectional height and segment controls</p>
       </div>
     </header>
 
@@ -67,7 +76,8 @@
       <div class="control-group">
         <label for="sim-human-height">Human height (m)</label>
         <div class="slider-row">
-          <input id="sim-human-height" type="range" min="1.50" max="2.00" step="0.01" />
+          <input id="sim-human-height" type="range" min="1.18" max="2.20" step="0.01" />
+          <input id="sim-human-height-edit" class="sim06-edit" type="number" min="1.18" max="2.20" step="0.01" />
           <span id="sim-human-height-val" class="value-badge"></span>
         </div>
       </div>
@@ -109,10 +119,22 @@
       </div>
 
       <div class="control-group">
-        <label>Geometry</label>
+        <label for="sim-l1">Thigh length L1 (m)</label>
         <div class="slider-row">
+          <input id="sim-l1" type="range" min="0.30" max="0.65" step="0.001" />
+          <input id="sim-l1-edit" class="sim06-edit" type="number" min="0.30" max="0.65" step="0.001" />
           <span id="sim-l1-val" class="value-badge"></span>
+          <span id="sim-l1-pct" class="value-badge"></span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label for="sim-l2">Shank length L2 (m)</label>
+        <div class="slider-row">
+          <input id="sim-l2" type="range" min="0.28" max="0.52" step="0.001" />
+          <input id="sim-l2-edit" class="sim06-edit" type="number" min="0.28" max="0.52" step="0.001" />
           <span id="sim-l2-val" class="value-badge"></span>
+          <span id="sim-l2-pct" class="value-badge"></span>
         </div>
       </div>
 

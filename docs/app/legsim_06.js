@@ -14,12 +14,17 @@
   const BASE_L2 = 0.43;
   const BASE_FOOT_TOTAL = 0.265;
   const BASE_HEEL_BACK = 0.06;
+  const BASE_LEG_RATIO = (BASE_L1 + BASE_L2) / BASE_HEIGHT;
   const BED_MARGIN = 0.002;
+  const HUMAN_HEIGHT_MIN = 1.18;
+  const HUMAN_HEIGHT_MAX = 2.2;
   const WORLD_MIN_X = -0.15;
   const WORLD_MAX_X = 1.2;
 
   const DEFAULTS = {
     humanHeight: 1.8,
+    l1: BASE_L1,
+    l2: BASE_L2,
     hipMaxDeg: 35,
     kneeFactor: -2,
     speed: 1.0,
@@ -32,6 +37,11 @@
     pauseBtn: document.getElementById("sim-pause"),
     resetBtn: document.getElementById("sim-reset"),
     humanHeight: document.getElementById("sim-human-height"),
+    humanHeightEdit: document.getElementById("sim-human-height-edit"),
+    l1: document.getElementById("sim-l1"),
+    l1Edit: document.getElementById("sim-l1-edit"),
+    l2: document.getElementById("sim-l2"),
+    l2Edit: document.getElementById("sim-l2-edit"),
     hipMax: document.getElementById("sim-hip-max"),
     kneeFactor: document.getElementById("sim-knee-factor"),
     speed: document.getElementById("sim-speed"),
@@ -44,6 +54,8 @@
     cycleVal: document.getElementById("sim-cycle-val"),
     l1Val: document.getElementById("sim-l1-val"),
     l2Val: document.getElementById("sim-l2-val"),
+    l1PctVal: document.getElementById("sim-l1-pct"),
+    l2PctVal: document.getElementById("sim-l2-pct"),
   };
 
   const DATA = {};
@@ -78,11 +90,25 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
+  function syncSegmentsFromHeight(nextHeight) {
+    const clampedHeight = Math.max(HUMAN_HEIGHT_MIN, Math.min(HUMAN_HEIGHT_MAX, nextHeight));
+    const l1Ratio = STATE.l1 / Math.max(1e-6, STATE.humanHeight);
+    const l2Ratio = STATE.l2 / Math.max(1e-6, STATE.humanHeight);
+    STATE.humanHeight = clampedHeight;
+    STATE.l1 = l1Ratio * clampedHeight;
+    STATE.l2 = l2Ratio * clampedHeight;
+  }
+
+  function syncHeightFromSegments() {
+    const estimatedHeight = (STATE.l1 + STATE.l2) / BASE_LEG_RATIO;
+    STATE.humanHeight = Math.max(HUMAN_HEIGHT_MIN, Math.min(HUMAN_HEIGHT_MAX, estimatedHeight));
+  }
+
   function buildGeometry() {
     const scale = STATE.humanHeight / BASE_HEIGHT;
     return {
-      l1: BASE_L1 * scale,
-      l2: BASE_L2 * scale,
+      l1: STATE.l1,
+      l2: STATE.l2,
       heelBack: BASE_HEEL_BACK * scale,
       toeFwd: (BASE_FOOT_TOTAL - BASE_HEEL_BACK) * scale,
       groundMargin: BED_MARGIN * scale,
@@ -354,18 +380,35 @@
     elements.kneeMaxVal.textContent = `${(STATE.hipMaxDeg * STATE.kneeFactor).toFixed(0)} deg max`;
     elements.speedVal.textContent = STATE.speed.toFixed(1);
     elements.cycleVal.textContent = cycle.toFixed(2);
-    elements.l1Val.textContent = `L1 ${DATA.geom.l1.toFixed(3)}`;
-    elements.l2Val.textContent = `L2 ${DATA.geom.l2.toFixed(3)}`;
+    elements.l1Val.textContent = STATE.l1.toFixed(3);
+    elements.l2Val.textContent = STATE.l2.toFixed(3);
+    elements.l1PctVal.textContent = `${((STATE.l1 / STATE.humanHeight) * 100).toFixed(1)}%`;
+    elements.l2PctVal.textContent = `${((STATE.l2 / STATE.humanHeight) * 100).toFixed(1)}%`;
   }
 
   function syncCycleInput() {
     elements.cycle.value = String(cycle);
   }
 
+  function syncAnthropometryInputs() {
+    elements.humanHeight.value = String(STATE.humanHeight);
+    elements.humanHeightEdit.value = STATE.humanHeight.toFixed(2);
+    elements.l1.value = String(STATE.l1);
+    elements.l1Edit.value = STATE.l1.toFixed(3);
+    elements.l2.value = String(STATE.l2);
+    elements.l2Edit.value = STATE.l2.toFixed(3);
+  }
+
+  function clampToInputRange(input, value) {
+    const min = Number(input.min);
+    const max = Number(input.max);
+    return Math.max(min, Math.min(max, value));
+  }
+
   function resetDefaults() {
     Object.assign(STATE, DEFAULTS);
     cycle = DEFAULTS.cycle;
-    elements.humanHeight.value = String(STATE.humanHeight);
+    syncAnthropometryInputs();
     elements.hipMax.value = String(STATE.hipMaxDeg);
     elements.kneeFactor.value = String(STATE.kneeFactor);
     elements.speed.value = String(STATE.speed);
@@ -409,7 +452,42 @@
   });
 
   elements.humanHeight.addEventListener("input", () => {
-    STATE.humanHeight = Number(elements.humanHeight.value);
+    syncSegmentsFromHeight(Number(elements.humanHeight.value));
+    syncAnthropometryInputs();
+    handleParamChange();
+  });
+
+  elements.humanHeightEdit.addEventListener("change", () => {
+    syncSegmentsFromHeight(clampToInputRange(elements.humanHeightEdit, Number(elements.humanHeightEdit.value)));
+    syncAnthropometryInputs();
+    handleParamChange();
+  });
+
+  elements.l1.addEventListener("input", () => {
+    STATE.l1 = Number(elements.l1.value);
+    syncHeightFromSegments();
+    syncAnthropometryInputs();
+    handleParamChange();
+  });
+
+  elements.l1Edit.addEventListener("change", () => {
+    STATE.l1 = clampToInputRange(elements.l1Edit, Number(elements.l1Edit.value));
+    syncHeightFromSegments();
+    syncAnthropometryInputs();
+    handleParamChange();
+  });
+
+  elements.l2.addEventListener("input", () => {
+    STATE.l2 = Number(elements.l2.value);
+    syncHeightFromSegments();
+    syncAnthropometryInputs();
+    handleParamChange();
+  });
+
+  elements.l2Edit.addEventListener("change", () => {
+    STATE.l2 = clampToInputRange(elements.l2Edit, Number(elements.l2Edit.value));
+    syncHeightFromSegments();
+    syncAnthropometryInputs();
     handleParamChange();
   });
 
