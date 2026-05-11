@@ -102,7 +102,7 @@
     const hipRad = angles.hip * (Math.PI / 180);
     const kneeRad = angles.knee * (Math.PI / 180);
     const thighTheta = hipRad;
-    const shankTheta = hipRad - kneeRad;
+    const shankTheta = hipRad + kneeRad;
     const footTheta = shankTheta + (Math.PI * 0.5);
     const hipX = 0.08;
     const hipYRel = 0;
