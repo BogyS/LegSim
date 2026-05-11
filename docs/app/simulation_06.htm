@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light" />
+  <title>LegSim Simulation 06</title>
+  <link rel="icon" href="../favicon.ico" />
+  <link rel="stylesheet" href="legsim.css" />
+  <style>
+    .app {
+      padding-top: 16px;
+      gap: 14px;
+    }
+    .hero {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    .card {
+      padding: 12px;
+    }
+    .controls {
+      gap: 10px;
+    }
+    .control-group label {
+      margin-bottom: 4px;
+    }
+    .subhead {
+      margin: 0;
+      line-height: 1.15;
+    }
+    .sim06-title {
+      font-size: clamp(1.25rem, 1.7vw, 1.8rem);
+      margin: 0;
+    }
+    #sim-bed-canvas,
+    #sim-angle-canvas {
+      height: 520px;
+    }
+    .sim06-links-row {
+      margin-left: auto;
+      display: flex;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="hero">
+      <div class="hero-text">
+        <h2 class="sim06-title">Supine Knee Flexion Simulation 06</h2>
+      </div>
+    </header>
+
+    <section class="card">
+      <p id="sim-status" class="subhead">Cycle 0.00 | Hip 0.0 deg | Knee 0.0 deg | Clearance 0.000 m</p>
+    </section>
+
+    <section class="controls card">
+      <div class="control-group">
+        <label for="sim-human-height">Human height (m)</label>
+        <div class="slider-row">
+          <input id="sim-human-height" type="range" min="1.50" max="2.00" step="0.01" />
+          <span id="sim-human-height-val" class="value-badge"></span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label for="sim-hip-max">Hip flexion max (deg)</label>
+        <div class="slider-row">
+          <input id="sim-hip-max" type="range" min="0" max="70" step="1" />
+          <span id="sim-hip-max-val" class="value-badge"></span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label for="sim-knee-max">Knee flexion max (deg)</label>
+        <div class="slider-row">
+          <input id="sim-knee-max" type="range" min="0" max="140" step="1" />
+          <span id="sim-knee-max-val" class="value-badge"></span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label for="sim-speed">Speed factor</label>
+        <div class="slider-row">
+          <input id="sim-speed" type="range" min="0.3" max="2.0" step="0.1" />
+          <span id="sim-speed-val" class="value-badge"></span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label for="sim-cycle">Cycle position</label>
+        <div class="slider-row">
+          <input id="sim-cycle" type="range" min="0" max="1" step="0.001" />
+          <span id="sim-cycle-val" class="value-badge"></span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Geometry</label>
+        <div class="slider-row">
+          <span id="sim-l1-val" class="value-badge"></span>
+          <span id="sim-l2-val" class="value-badge"></span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Playback</label>
+        <div class="button-row">
+          <button id="sim-pause" type="button">Pause</button>
+          <button id="sim-reset" type="button">Reset</button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <div class="sim06-links-row">
+          <a class="chip" href="../index.htm">Home</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="plots">
+      <div class="card plot-card">
+        <header>
+          <h2>Bed View</h2>
+          <p>Single leg flexion from a supine position with a fixed bed line.</p>
+        </header>
+        <canvas id="sim-bed-canvas" width="900" height="520"></canvas>
+      </div>
+      <div class="card plot-card">
+        <header>
+          <h2>Joint Angles</h2>
+          <p>Hip and knee flexion over one flex-extend cycle.</p>
+        </header>
+        <canvas id="sim-angle-canvas" width="520" height="520"></canvas>
+      </div>
+    </section>
+  </main>
+
+  <script src="legsim_06.js"></script>
+</body>
+</html>
