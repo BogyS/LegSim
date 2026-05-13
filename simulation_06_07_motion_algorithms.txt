@@ -1,0 +1,361 @@
+1. Simulation 06 overview
+Context
+ - Exoskeleton leg is lying on a bed or table
+ - Motion is in a sagittal 2D plane
+ - Hip height is fixed during the entire cycle
+ - Hip and knee angles are related by a selectable constraint
+ - Foot is kept at 90 degrees relative to the shank
+
+Goal
+ - Simulate assisted knee flexion while lying down
+ - Keep the geometry simple and deterministic
+ - Preserve realistic segment lengths and foot offset
+ - Avoid visual distortion by using uniform X/Y scaling
+
+Main assumptions
+ - Only one leg is modeled
+ - The hip point does not move vertically
+ - The bed line is only a visual reference after hip height is solved
+ - The movement is kinematic, not dynamic
+ - No torque, mass, inertia, friction, or contact force is simulated
+
+2. Simulation 06 anthropometry
+Inputs
+ - Human height
+ - Thigh length L1
+ - Shank length L2
+ - Hip flexion maximum angle
+ - Knee constraint factor
+ - Cycle position
+ - Speed factor
+
+Segment model
+ - L1 is the thigh segment
+ - L2 is the shank segment
+ - Foot geometry includes ankle to heel offset
+ - Foot geometry includes ankle to toe offset
+
+Bidirectional height logic
+ - If human height changes, L1 and L2 keep their current percentages of height
+ - If L1 or L2 changes directly, human height is re-estimated from L1 plus L2
+ - Percent values are displayed for both L1 and L2
+
+Foot model
+ - Heel point is behind the ankle by heelBack
+ - Toe point is in front of the ankle by toeFwd
+ - The foot is not attached directly at the heel
+ - This preserves ankle height above the bed when the heel is the lowest point
+
+3. Simulation 06 movement algorithm
+Cycle generation
+ - Cycle value goes from 0 to 1
+ - The cycle rises from 0 to maximum and then returns to 0
+ - The envelope uses smoothstep for a smooth start and stop
+
+Envelope formula
+ - mirrorCycle(t) equals 2t for the first half
+ - mirrorCycle(t) equals 2 - 2t for the second half
+ - smoothstep(x) equals x * x * (3 - 2 * x)
+
+Hip angle
+ - hipDeg equals hipMaxDeg multiplied by the cycle envelope
+ - Hip angle is positive during flexion
+
+Knee angle
+ - kneeDeg equals hipDeg multiplied by kneeFactor
+ - Available knee factors are -2, -1, and 0
+ - Default is -2 times hip angle
+
+Segment orientation
+ - Thigh orientation equals hip angle
+ - Shank orientation equals hip angle plus knee angle
+ - Foot orientation equals shank orientation plus 90 degrees
+
+Position calculation
+ - Hip is the root point
+ - Knee is computed from hip plus L1
+ - Ankle is computed from knee plus L2
+ - Heel and toe are computed from ankle and foot orientation
+
+Hip height calculation
+ - A full cycle is sampled
+ - The lowest point across hip, knee, ankle, heel, and toe is found
+ - Hip height is fixed to keep the lowest sampled point at groundMargin
+ - This makes hip Y constant for the entire motion
+
+Rendering
+ - Bed View uses uniform metric scaling on X and Y
+ - This keeps visual lengths and angles correct
+ - The angle plot uses separate hip and knee panels
+ - Hip panel uses scale -10 to 90 degrees
+ - Knee panel uses scale -150 to 10 degrees
+
+4. Simulation 06 controller interpretation
+Kinematic reference
+ - Simulation 06 generates target joint angles
+ - It does not control a motor directly
+ - The generated angles can be used as reference trajectories
+
+MIT mode interpretation
+ - hipDeg can be converted to hip p_des
+ - kneeDeg can be converted to knee p_des
+ - p_des should be ramped over time using the same envelope
+ - v_des can be zero for initial tests
+ - kp and kd define stiffness and damping
+
+Servo mode interpretation
+ - hipDeg and kneeDeg can be sent as target positions
+ - Speed can be derived from the desired movement duration
+ - This mode is more direct for prescribed movements
+
+5. Simulation 07 overview
+Context
+ - Exoskeleton leg is in a seated position
+ - Thigh rests horizontally on a chair
+ - Hip is fixed
+ - Only the knee rotates
+
+Goal
+ - Simulate knee extension from sitting
+ - Raise the lower leg by rotating only the knee
+ - Keep thigh position fixed
+ - Preserve the same foot geometry as simulation 06
+
+Main assumptions
+ - Only one leg is modeled
+ - Hip and thigh are fixed
+ - Knee is the only moving joint
+ - Motion is kinematic, not dynamic
+ - The chair is a visual support, not a physics object
+
+6. Simulation 07 anthropometry
+Inputs
+ - Human height
+ - Thigh length L1
+ - Shank length L2
+ - Knee extension maximum angle
+ - Seat height
+ - Cycle position
+ - Speed factor
+
+Shared geometry
+ - L1 and L2 use the same bidirectional height logic as simulation 06
+ - Foot geometry uses heelBack and toeFwd
+ - Foot remains at 90 degrees relative to the shank
+
+7. Simulation 07 movement algorithm
+Cycle generation
+ - Cycle value goes from 0 to 1
+ - The motion rises to maximum knee extension and returns
+ - The envelope uses the same smoothstep mirror cycle as simulation 06
+
+Knee angle
+ - kneeDeg equals kneeMaxDeg multiplied by the cycle envelope
+ - Knee angle starts at 0 degrees
+ - Knee angle reaches the selected maximum at the middle of the cycle
+ - Knee angle returns to 0 degrees at the end of the cycle
+
+Fixed thigh
+ - Hip position is fixed
+ - Thigh orientation is always horizontal
+ - Knee position is hip plus L1 along the horizontal axis
+
+Shank orientation
+ - At rest, shank points downward from the knee
+ - Knee extension rotates the shank forward and upward
+ - shankTheta equals -90 degrees plus kneeDeg
+
+Foot orientation
+ - Foot orientation equals shank orientation plus 90 degrees
+ - This keeps the foot perpendicular to the shank
+
+Position calculation
+ - Hip is fixed at seat height
+ - Knee is fixed relative to hip and L1
+ - Ankle moves on an arc around the knee
+ - Heel and toe follow the ankle and foot orientation
+
+Rendering
+ - Chair View uses uniform metric scaling on X and Y
+ - Chair seat and back are visual references
+ - Thigh is drawn fixed
+ - Shank and foot move with knee angle
+ - Angle plot shows knee extension over one cycle
+
+8. Simulation 07 controller interpretation
+Kinematic reference
+ - Simulation 07 generates a single knee reference
+ - Hip reference is fixed
+ - Knee reference follows a smooth lift-return cycle
+
+MIT mode interpretation
+ - Knee p_des follows kneeDeg converted to radians
+ - v_des can be zero for first tests
+ - Movement speed is controlled by the trajectory duration
+ - kp and kd define how stiffly the motor tracks the reference
+
+Servo mode interpretation
+ - Knee target position is sent directly
+ - Speed can be set from the required lift time
+ - This is suitable for simple seated knee extension tests
+
+9. Difference between simulations 06 and 07
+Simulation 06
+ - Supine position
+ - Hip angle changes
+ - Knee angle is derived from hip angle
+ - Hip Y is fixed after solving minimum clearance
+ - Used for lying knee flexion patterns
+
+Simulation 07
+ - Seated position
+ - Hip and thigh are fixed
+ - Only knee angle changes
+ - Seat height is directly configurable
+ - Used for seated knee extension patterns
+
+Shared properties
+ - Single-leg 2D kinematic models
+ - Smooth lift-return cycle
+ - Editable human height, L1, and L2
+ - Uniform metric rendering
+ - Foot geometry with ankle offset
+ - No dynamics or force simulation
+
+10. Next implementation steps
+Target hardware
+ - Main controller can be ESP32-SE or ESP32-S3 Super Mini
+ - ESP32-S3 Super Mini is a good compact controller option
+ - Board choice should be hidden behind a small board configuration layer
+ - Board configuration should define CAN TX pin, CAN RX pin, status LED, buttons, and ADC pins
+ - Firmware should avoid hard-coded board pins in motion-control code
+
+CAN interface
+ - CAN transceiver is SN65HVD230
+ - SN65HVD230 works at 3.3 V logic level
+ - ESP32 internal TWAI controller connects to SN65HVD230 TXD and RXD
+ - SN65HVD230 CANH and CANL connect to the Cubemars CAN bus
+ - CAN termination must be handled at the bus ends
+ - Do not place 120 ohm termination on every node
+
+Motor set
+ - Hip motor is Cubemars AK80-64 KV80
+ - Knee motor is Cubemars AK45-36 KV80
+ - Ankle motor is Cubemars AK45-36 KV80
+ - Each joint needs a separate configuration profile
+
+Motor profile fields
+ - Joint name
+ - Motor model
+ - CAN ID
+ - Mechanical sign
+ - Encoder zero offset
+ - Minimum allowed position
+ - Maximum allowed position
+ - Maximum allowed speed
+ - Maximum allowed torque or current
+ - Initial kp and kd values
+ - Preferred control mode for first tests
+
+Existing motor tests
+ - Motors were already tested from the CubeMars PC application
+ - Tests used PC connection through CAN and serial
+ - Position control using p_des, kp, and kd was validated
+ - Torque command using t_des was also validated
+ - ESP32 firmware should reproduce the known working commands first
+
+Control mode decision
+ - Servo position-velocity mode is useful for prescribed demo motions
+ - MIT mode is useful for impedance-like control and softer tracking
+ - Initial mannequin demo can use prescribed trajectories
+ - Later versions can compare Servo mode and MIT mode using the same reference angles
+
+Demo target
+ - Exoskeleton will be mounted on a mannequin
+ - Initial goal is movement demonstration, not patient assistance
+ - Priority is repeatable motion, clear limits, and safe stopping
+ - Compliance with a human user is not the first requirement
+
+Firmware mapping
+ - Convert degrees to radians for Cubemars commands
+ - Define motor zero positions for hip, knee, and ankle
+ - Define sign conventions for all motors
+ - Add mechanical joint limits
+ - Generate p_des trajectories at fixed update rate
+ - Use simulation 06 to generate lying hip and knee references
+ - Use simulation 07 to generate seated knee-only references
+ - Keep trajectory generation independent from CAN packet code
+ - Keep motor command packing independent from movement algorithms
+
+Simulation 06 hardware mapping
+ - Hip reference comes from hipDeg
+ - Knee reference comes from kneeDeg
+ - Knee reference can be -2, -1, or 0 times hipDeg depending on selected constraint
+ - Hip motor should map to AK80-64
+ - Knee motor should map to AK45-36
+ - Ankle is not actively controlled in the current simulation 06 model
+
+Simulation 07 hardware mapping
+ - Hip reference is fixed
+ - Knee reference comes from kneeDeg
+ - Knee motor should map to AK45-36
+ - This is the simplest first hardware motion because only one moving joint is required
+
+Foot pressure sensing
+ - Foot pressure sensors can use one or more FSR402 sensors
+ - FSR402 data should be monitored during tests
+ - Sensors can indicate contact, pressure distribution, and possible loading changes
+ - First use should be monitoring and logging, not direct control
+ - Later use can add contact-based safety or gait-state detection
+
+FSR node architecture options
+ - A small ESP32-S3 Super Mini can be mounted in the foot
+ - The foot node can read FSR402 sensors locally
+ - The foot node can transmit data to the hip controller through CAN
+ - The foot node can transmit data wirelessly through ESP-NOW
+ - The foot node can expose a separate web server for calibration and tests
+
+Preferred FSR direction
+ - CAN is preferred when FSR data is needed by the main controller
+ - ESP-NOW is possible when reducing wires is more important than deterministic timing
+ - A separate web server is useful for debugging and calibration
+ - Direct analog wiring from all FSR sensors to the hip board is not preferred
+
+Rejected or weak FSR option
+ - Reading all FSR sensors directly on the hip controller is not considered feasible
+ - It requires too many moving analog wires
+ - Long analog lines are more exposed to noise
+ - Moving cables and connectors increase mechanical failure risk
+ - The design is less modular and harder to expand
+
+Safety
+ - Start with small angles and low stiffness
+ - Add emergency stop
+ - Add position limits in firmware
+ - Add speed limits in firmware
+ - Add current or torque limits when available
+ - Add timeout if motor feedback is missing
+ - Add timeout if CAN bus errors increase
+ - Add watchdog for the motion task
+ - Add a safe disabled state after boot
+ - Require explicit enable before any motor command
+
+Testing order
+ - Test CAN communication with one motor on the bench
+ - Enter motor mode and read feedback before sending motion commands
+ - Reproduce known CubeMars application commands from ESP32
+ - Test simulation 07 first because it uses only one moving joint
+ - Test simulation 06 after knee motor direction and hip motor direction are validated
+ - Compare visual target angles with motor encoder feedback
+ - Add logging before closed-loop hardware tests
+ - Add FSR monitoring after basic motor motion works
+ - Add multi-motor synchronized motion after individual joints are validated
+
+Open decisions
+ - Final main board choice: ESP32-SE or ESP32-S3 Super Mini
+ - Final CAN pin mapping
+ - Final CAN IDs for hip, knee, and ankle motors
+ - Whether foot FSR node communicates through CAN or ESP-NOW
+ - Whether foot FSR node also hosts a local web server
+ - Whether first demo uses Servo position-velocity mode or MIT mode
+ - Final kp, kd, speed, and torque limits per joint
