@@ -1,0 +1,174 @@
+1.	6 DOF biped overview
+Balance
+ - It can stand and balance in a simple 2D setup
+Walking
+ - It can walk forward with basic and somewhat stiff motion
+Changing direction, very limited
+It lacks roll and yaw so it cannot turn naturally
+Why the limitation:
+ - Motion mostly in one plane forward and backward
+ - No lateral control leads to weak sideways balance
+ - No hip rotation means no proper turning
+Conclusion
+ - 6 DOF is good for basic walking
+ - Not enough for realistic movement or turning
+2.	6 DOF biped controller
+Inputs
+ - Joint positions q
+ - Joint velocities dq
+ - Optional foot contact
+Outputs
+ - Joint torques or target positions
+Core idea
+ - The controller keeps the robot close to desired joint angles
+ - tau equals Kp times position error plus Kd times velocity error
+ - This is a PD controller
+Main components
+ - Posture control: keeps torso upright and stable
+ - Joint tracking: each joint follows a reference angle
+Simple gait generator
+ - Alternates legs
+ - Defines swing and stance phases
+Walking logic
+ - One leg is support
+ - One leg is swing
+ - Controller keeps support leg stable
+ - Controller moves swing leg forward
+ - Legs switch periodically
+Balance strategy
+ - Keep center of mass above support foot
+ - Adjust torso angle slightly
+ - Use ankle and hip to correct errors
+Limitations
+ - No lateral balance
+ - Sensitive to disturbances
+ - Turning is weak
+What it is good for
+ - Standing balance
+ - Forward walking
+Summary
+ - PD control per joint
+ - Predefined walking pattern
+ - Minimal balance logic
+ - Works only in simplified scenarios
+
+ 
+3.	Improving balance
+Add hip roll and ankle roll on both legs
+ - Hip roll
+	Allows body to shift left and right
+	Very important for lateral balance
+ - Ankle roll
+	Corrects sideways tilt
+	Helps keep center of mass above foot
+ - Hip yaw
+	Useful for turning later
+	Not required for basic balance
+Why this helps
+ - With only sagittal motion
+	Forward and backward balance is possible
+	Sideways balance is weak
+ - With roll DOF
+	Weight can shift between legs
+	Exoskeleton can react to lateral falling
+	Standing becomes more realistic
+Additional improvements
+ - IMU
+	Measures torso angle and angular velocity
+ - Foot contact sensing
+	Detects support leg
+ - State machine
+	Includes standing weight shift swing and landing
+Center of mass control
+ - Keeps center of mass above support area
+Controller improvements
+ - Torso stabilization
+	Keeps upper body upright
+ - Weight shift control
+	Moves body over support leg
+ - Foot placement control
+	Places foot to maintain balance
+
+4.	Simulation
+Use MuJoCo
+ - Install Python bindings or prepare C++ build
+Create robot model
+ - Write MJCF XML file
+ - Add world with floor
+ - Add torso with free joint
+ - Add legs with joints and geoms
+ - Add actuators for each joint
+Load simulation
+ - Load XML into MuJoCo
+ - Create model and data structures
+ - Start simulation loop
+Simulation loop
+ - Read joint positions and velocities
+ - Compute control using controller
+ - Apply torques or target positions
+ - Step simulation forward
+Add controller
+ - Implement PD control
+ - Define reference joint positions
+ - Keep torso upright
+ - Stabilize standing first
+Test stability
+ - Check if exoscheleton stands without falling
+Tune Kp and Kd
+ - Adjust masses and joint limits
+Add walking
+ - Create simple gait pattern
+ - Alternate legs
+ - Define swing and stance phases
+ - Test slow forward walking
+Improve realism
+ - Add IMU like measurements
+ - Add foot contact detection
+ - Add small noise and delays
+Iterate
+ - Adjust model parameters
+ - Improve controller logic
+Prepare for C++ (embedded)
+ - Keep controller independent of simulator
+ - Use same input output structure
+ - Reuse logic in final implementation
+
+5.	AI and ML improvements for the exoskeleton
+AI is used to improve control performance, not replace the controller
+It is integrated on top of the existing control architecture
+Main roles of AI
+ - Improve balance by generating corrective actions
+ - Adapt gait parameters such as step length and timing
+ - Adjust posture based on disturbances
+ - Improve walking smoothness and efficiency
+Types of AI functionality
+ - Reference generator
+	AI outputs desired joint angles or trajectories
+ - Balance correction
+	AI outputs small adjustments to stabilize the system
+ - Gait adaptation
+	AI modifies walking pattern based on current state
+ - State estimation support
+	AI can estimate missing or noisy sensor data
+Model requirements for edge deployment
+ - Small model size
+ - Low latency inference
+ - Fixed input and output structure
+ - Prefer simple feedforward networks
+Training process
+ - Use MuJoCo simulation to generate training data
+ - Train model using reinforcement learning or supervised learning
+ - Validate model in simulation under different conditions
+Deployment process
+ - Export trained model
+ - Convert to format usable in C++
+ - Optimize for embedded hardware
+ - Run inference on Zynq platform
+Integration with controller
+ - AI outputs reference values or corrections
+ - PD controller tracks references
+ - Controller ensures stability and safety
+Limitations
+ - AI should not directly control torques at this stage
+ - Performance depends on training quality
+ - Requires validation for real world transfer
