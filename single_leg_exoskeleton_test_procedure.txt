@@ -1,408 +1,314 @@
-1. Test objective
-Purpose
- - Test one leg of the exoskeleton in a controlled setup
- - Validate electrical safety before motion
- - Validate motor communication and feedback
- - Validate limited joint motion
- - Measure voltage, current, force, pressure, and angles
- - Confirm that software limits stop movement before mechanical limits
+1. Purpose and scope
+This procedure validates one exoskeleton leg in a controlled bench setup before any human use.
+The goal is to verify power, CAN communication, encoder feedback, joint zero references, angle limits, current consumption, forces, pressure sensors, and safe stop behavior.
 
-Test scope
+Scope
  - One leg only
- - Hip, knee, and ankle actuators can be tested separately
- - First tests should use no load
- - Later tests can use the mannequin
- - Human testing is not included
+ - Hip, knee, and ankle tested separately before combined motion
+ - First tests without load
+ - Later tests on the mannequin
+ - No human testing in this phase
 
 Main risks
  - Unexpected motor movement
- - Incorrect motor direction
- - Excess current
- - Incorrect zero position
+ - Wrong motor direction
+ - Wrong joint zero reference
+ - Excess current or voltage drop
  - Mechanical collision at joint limits
  - CAN communication loss
- - Overheating of motor or driver
+ - Motor or driver overheating
 
 2. Required equipment
-Control hardware
+Control and actuator hardware
  - ESP32-S3 or ESP32-S3 Super Mini controller
- - SN65HVD230 CAN transceiver
- - CAN wiring and connectors
- - USB cable for programming and serial monitoring
- - PC or laptop with PlatformIO and serial monitor
+ - SN65HVD230 3.3 V CAN transceiver
+ - Cubemars AK80-64 KV80 motor for hip
+ - Cubemars AK45-36 KV80 motors for knee and ankle
+ - CAN wiring, motor power wiring, USB programming cable
+ - PC with PlatformIO, serial monitor, and CubeMars/CAN tools if needed
 
-Actuators
- - Cubemars AK80-64 KV80 for hip
- - Cubemars AK45-36 KV80 for knee
- - Cubemars AK45-36 KV80 for ankle
-
-Power equipment
+Power and safety equipment
  - Adjustable DC power supply with current limit
- - Main battery or final power supply, only after bench validation
+ - Final battery or final DC source only after bench validation
  - Inline fuse or DC breaker
  - Emergency stop switch
- - Power switch
+ - Main power switch
+ - Rigid fixture, bench vise, or mechanical support
+ - Protective glasses and fire-safe test surface
 
-Measurement instruments
- - Digital multimeter
- - Clamp meter or inline current meter
- - Oscilloscope for CAN signal inspection
- - CAN USB analyzer for independent CAN monitoring
- - Logic analyzer if available
- - IR thermometer or thermal camera
- - Digital angle gauge or inclinometer
- - Mechanical protractor
- - Spring scale or force gauge
- - Weights for simple loading tests
- - Calipers or ruler for link length verification
+Measurement equipment
+ - Digital multimeter for voltage, continuity, and resistance checks
+ - Clamp meter or inline current meter for supply current
+ - Oscilloscope for CANH/CANL electrical signal inspection
+ - CAN USB analyzer for independent CAN traffic monitoring
+ - Logic analyzer only if needed to debug ESP32 TX/RX digital signals
+ - IR thermometer or thermal camera for motor and driver temperature
+ - Digital angle gauge or inclinometer for joint angle verification
+ - Mechanical goniometer/protractor as a backup manual angle check
+ - Spring scale or force gauge for simple force measurements
+ - Weights for repeatable load tests
+ - Calipers or ruler for link length and lever arm checks
 
 Sensor equipment
  - FSR402 pressure sensors
  - Known resistors for voltage divider tests
- - Breadboard or small test PCB for sensor validation
+ - Breadboard or small test PCB
  - Optional ESP32-S3 Super Mini foot sensor node
 
-Safety equipment
- - Bench vise or rigid fixture
- - Mechanical end stops if available
- - Insulating tape and heat-shrink tubing
- - Protective glasses
- - Fire-safe surface for power tests
-
 3. Pre-test inspection
-Mechanical inspection
- - Check that all screws are tight
- - Check that each joint moves freely by hand
- - Check that no cable is stretched during motion
- - Check that no cable can enter a moving joint
- - Check that the foot and links cannot collide with the bench
- - Mark mechanical joint limits visibly
+Mechanical checks
+ - Verify all screws, mounts, couplers, and brackets are tight
+ - Move each joint by hand and confirm there is no binding
+ - Confirm cables cannot enter a moving joint
+ - Confirm cables are not stretched at the expected angle limits
+ - Mark the mechanical neutral position and visible joint limits
+ - Add mechanical end stops if available
 
-Electrical inspection
- - Verify supply voltage polarity
- - Verify ESP32 ground is common with CAN transceiver ground
+Electrical checks with power off
+ - Verify supply polarity
+ - Verify there is no short between supply positive and ground
+ - Verify ESP32 ground, CAN transceiver ground, and motor ground reference are connected as required
  - Verify SN65HVD230 is powered from 3.3 V
  - Verify CANH and CANL are not swapped
- - Verify CAN termination is installed only at bus ends
+ - Verify CAN termination is present only at the bus ends
  - Verify each motor has a unique CAN ID
 
-Firmware inspection
- - Confirm board profile
- - Confirm CAN TX and RX pins
- - Confirm motor IDs
- - Confirm motor signs
- - Confirm zero offsets
- - Confirm joint position limits
- - Confirm speed limits
- - Confirm torque or current limits
+Firmware checks
+ - Confirm board profile and CAN pins
+ - Confirm motor IDs and joint mapping
+ - Confirm direction signs for hip, knee, and ankle
+ - Confirm initial angle limits are conservative
+ - Confirm current, torque, speed, and temperature limits are configured
+ - Confirm emergency stop and fault reset behavior
 
-4. Initial electrical tests
-Power-off checks
- - Measure resistance between supply positive and ground
- - Check there is no short circuit
- - Check continuity of CANH and CANL
- - Check continuity of ground between controller and drivers
- - Check emergency stop continuity
-
-Low-voltage or current-limited power-on
- - Set power supply current limit low
- - Power controller without enabling motors
- - Measure 3.3 V rail
- - Measure 5 V rail if present
+4. Initial power and CAN tests
+Power-on without motor motion
+ - Set the DC power supply current limit low
+ - Power the controller first, without enabling motion
+ - Measure 3.3 V and 5 V rails if present
  - Measure motor bus voltage
- - Confirm no component overheats
+ - Confirm there is no unexpected heating or reset
 
-CAN physical layer check
- - Measure voltage between CANH and CANL while idle
- - Inspect CANH and CANL with oscilloscope if available
- - Confirm bus activity when firmware sends frames
- - Check for CAN error counters in firmware
- - Check that feedback frames are received from each motor
+CAN physical layer
+ - Check idle CANH/CANL levels with oscilloscope if available
+ - Send a simple status request or enable command
+ - Confirm feedback frames are received from each motor
+ - Use a CAN USB analyzer when possible to independently confirm traffic
+ - Stop if CAN errors, missing feedback, or unstable communication appear
 
-5. Sensor tests
-FSR402 raw reading
- - Connect one FSR402 through a voltage divider
- - Measure raw ADC value with no load
- - Apply light pressure and record ADC value
- - Apply stronger pressure and record ADC value
- - Confirm reading changes monotonically
+5. Encoder, homing, and zero reference procedure
+Important distinction
+ - The Cubemars motors include a 14-bit single-turn absolute encoder according to the driver manual
+ - The motor encoder reports motor position, not the anatomical zero of the exoskeleton joint
+ - The exoskeleton still needs a defined mechanical reference position for each joint
+ - For the standard single-turn encoder case, use manual reference positioning plus Set Origin
+ - The manual describes temporary origin and permanent zero; permanent zero is stated for dual encoder models only, so it must not be assumed for the current motors until verified
 
-FSR calibration
- - Record no-load baseline
- - Record contact threshold
- - Record approximate high-load value
- - Add filtering in firmware
- - Display raw and filtered values in serial or web UI
+Recommended first-test procedure
+ - Disable motion commands
+ - Support the joint mechanically so it cannot fall or rotate unexpectedly
+ - Move one joint manually to its defined reference position
+ - Measure this position with a digital angle gauge or goniometer
+ - Send the CubeMars Set Origin command for that motor
+ - Use temporary origin first
+ - Read back the encoder position and confirm it is near zero
+ - Command only a very small movement, for example +2 degrees
+ - Confirm the physical direction is correct
+ - Return to zero
+ - Command -2 degrees only if mechanically safe
+ - Confirm the opposite direction
+ - Repeat for hip, knee, and ankle, one motor at a time
 
-FSR placement check
- - Test heel sensor if mounted
- - Test forefoot sensor if mounted
- - Test toe sensor if mounted
- - Confirm cable strain relief
- - Confirm sensor does not shift during foot motion
+Zero persistence check
+ - After temporary origin works, power-cycle the system
+ - Read the encoder position again at the same mechanical reference
+ - If zero is lost, the firmware must repeat the reference procedure after each power-up
+ - Do not rely on permanent zero unless the exact motor/driver configuration is confirmed to support it
+ - Store software offsets in firmware or configuration only after the mechanical reference is repeatable
 
-6. Joint zero calibration
-General rule
- - Calibrate one joint at a time
- - Keep other motors disabled
- - Start with the joint mechanically supported
- - Use low stiffness and low speed
-
-Hip zero
- - Place hip in defined neutral position
- - Read motor encoder position
- - Store hip zero offset
- - Command a very small positive movement
- - Confirm direction
- - Command a very small negative movement
- - Confirm direction
-
-Knee zero
- - Place knee in defined neutral position
- - Read motor encoder position
- - Store knee zero offset
- - Command a very small positive movement
- - Confirm direction
- - Command a very small negative movement
- - Confirm direction
-
-Ankle zero
- - Place ankle or foot in defined neutral position
- - Read motor encoder position
- - Store ankle zero offset
- - Command a very small positive movement
- - Confirm direction
- - Command a very small negative movement
- - Confirm direction
-
-7. Angle limits
+6. Angle limits and safe motion envelope
 Initial conservative limits
- - Hip test range should start at +/- 5 degrees
- - Knee test range should start at +/- 5 degrees
- - Ankle test range should start at +/- 5 degrees
- - Increase range only after direction and zero are validated
-
-Simulation 06 suggested limits
- - Hip starts at 0 degrees
- - Hip maximum starts at 10 degrees for first hardware test
- - Knee follows selected constraint only after hip direction is validated
- - Knee maximum absolute value starts below 20 degrees
-
-Simulation 07 suggested limits
- - Hip remains fixed
- - Knee starts at 0 degrees
- - Knee extension maximum starts at 10 degrees
- - Increase to 20, 35, 50, and 75 degrees only after validation
-
-Firmware limit behavior
- - Reject target positions outside software limits
- - Clamp targets only if this is explicitly logged
- - Stop movement if encoder feedback exceeds allowed range
- - Stop movement before mechanical hard stops
+ - Start each joint with approximately +/- 5 degrees around the calibrated zero
+ - Increase range only after zero, direction, and feedback are validated
+ - Stop before mechanical hard stops
  - Require manual reset after a limit fault
 
-8. Single motor movement tests
-Hip motor test
- - Disable knee and ankle motors
- - Command hip to small positive angle
- - Return hip to zero
- - Command hip to small negative angle if mechanically allowed
- - Return hip to zero
- - Record voltage, current, angle, speed, and temperature
+Simulation 06 related limits
+ - Supine movement starts with low hip flexion, for example 0 to 10 degrees
+ - Knee motion follows the selected constraint only after hip direction is validated
+ - Start knee absolute motion below 20 degrees
+ - Increase the range gradually only after repeated stable cycles
 
-Knee motor test
- - Disable hip and ankle motors
- - Command knee to small positive angle
- - Return knee to zero
- - Command knee to small negative angle if mechanically allowed
- - Return knee to zero
- - Record voltage, current, angle, speed, and temperature
+Simulation 07 related limits
+ - Hip remains fixed
+ - Knee starts at 0 degrees
+ - Start with 10 degrees extension/flexion test range
+ - Increase step by step, for example 20, 35, 50, and 75 degrees, only after validation
 
-Ankle motor test
- - Disable hip and knee motors
- - Command ankle to small positive angle
- - Return ankle to zero
- - Command ankle to small negative angle if mechanically allowed
- - Return ankle to zero
- - Record voltage, current, angle, speed, and temperature
+Firmware behavior
+ - Reject target angles outside configured limits
+ - Stop if encoder feedback exceeds the allowed range
+ - Stop if feedback is missing
+ - Stop if current or temperature exceeds the configured threshold
+ - Log every limit or safety stop
 
-9. Combined movement tests
-Simulation 07 hardware test
- - Use seated knee-only movement first
- - Keep hip fixed
- - Command knee trajectory from 0 to small angle and back
- - Compare target knee angle with encoder feedback
- - Check current peak during lift
- - Check motor temperature after repeated cycles
+7. Single motor movement tests
+Test sequence for each motor
+ - Test hip alone, then knee alone, then ankle alone
+ - Keep the other motors disabled or holding a safe fixed position
+ - Command a small positive angle and return to zero
+ - Command a small negative angle only if mechanically allowed
+ - Repeat at low speed first
+ - Record target angle, actual angle, current, bus voltage, temperature, and error flags
 
-Simulation 06 hardware test
- - Use lying motion after single motor tests pass
- - Command hip trajectory first with knee disabled
- - Command knee trajectory first with hip disabled
- - Command hip and knee together at low speed
- - Compare both target angles with encoder feedback
- - Check if link motion matches web simulation
+Expected result
+ - Movement direction matches the configured sign
+ - Actual position follows target position
+ - No mechanical collision occurs
+ - Current remains below the selected test limit
+ - Motor stops when target is reached
 
-Ankle integration test
- - Keep ankle disabled during first hip and knee tests
- - Add ankle only after hip and knee are validated
- - Start with ankle holding a fixed neutral position
- - Test ankle movement separately before synchronized motion
+8. Combined movement tests
+Simulation 07 knee-only validation
+ - Mount or support the leg in the seated configuration
+ - Keep the hip fixed
+ - Move only the knee through a small trajectory
+ - Compare commanded knee angle with encoder feedback
+ - Measure current peak and temperature over repeated cycles
 
-10. Electrical measurements during movement
+Simulation 06 supine validation
+ - Mount or support the leg in the lying configuration
+ - Test hip trajectory alone first
+ - Test knee trajectory alone second
+ - Test hip and knee together at low speed
+ - Compare the physical motion with the web simulation
+ - Add the ankle only after hip and knee are stable
+
+Mannequin-mounted validation
+ - Mount the exoskeleton on the mannequin
+ - Repeat the same low-angle tests
+ - Check for strap movement, frame flex, cable tension, and mechanical binding
+ - Increase speed and angle only after stable low-speed operation
+
+9. Electrical measurements during movement
 Voltage
  - Measure supply voltage before motion
- - Measure supply voltage during motion
- - Record minimum voltage during acceleration
+ - Record minimum supply voltage during acceleration
  - Check voltage drop at motor connectors
- - Check voltage drop across emergency stop and fuse
+ - Check voltage drop across fuse, breaker, and emergency stop
 
 Current
  - Measure idle current
  - Measure current during slow motion
  - Measure current during faster motion
- - Record peak current
- - Compare current with power supply limit
- - Stop if current exceeds expected value
+ - Record peak current for each joint and combined movement
+ - Stop if current is higher than expected for the load and speed
 
-CAN signals
- - Monitor CAN traffic with USB CAN analyzer if available
- - Record CAN frame rate
- - Record missing feedback events
- - Record bus errors
- - Stop if communication becomes unstable
+CAN and timing
+ - Record command rate and feedback rate
+ - Record missing feedback frames
+ - Record CAN error counters
+ - Compare commanded target timing with actual motor response
 
 Temperature
- - Measure driver temperature before test
- - Measure motor temperature before test
+ - Measure motor and driver temperature before test
  - Measure temperature after repeated cycles
- - Stop if temperature rises too fast
+ - Stop if temperature rises too fast or exceeds the selected safe limit
  - Allow cooldown before continuing
 
-11. Force and load measurements
-No-load test
- - Test every motion with no external load first
- - Record baseline current and temperature
- - Record tracking error
-
-Mannequin-mounted test
- - Mount exoskeleton on mannequin
- - Repeat low-angle tests
- - Record increased current
- - Confirm no mechanical binding
- - Confirm straps or mounts do not shift
+10. Force, load, and pressure measurements
+No-load baseline
+ - Run every trajectory without external load first
+ - Record baseline current, temperature rise, and tracking error
 
 Force gauge test
- - Use force gauge or spring scale at the foot or shank
- - Apply small resisting force
- - Record motor response
- - Record current increase
+ - Apply a small resisting force at the shank or foot using a force gauge or spring scale
+ - Record force, current increase, and position error
+ - Use the same lever arm for repeatable comparison
  - Stop if motion becomes unstable
 
-FSR load test
- - Record FSR values during foot contact
- - Compare FSR values with visible contact
- - Record values during repeated cycles
- - Check for sensor drift
+FSR402 test
+ - Record no-load ADC value
+ - Record contact threshold
+ - Apply light and stronger pressure and confirm monotonic response
+ - Compare heel, forefoot, or toe sensor values with visible contact
+ - Check for drift during repeated cycles
 
-12. Data logging
-Minimum log fields
+11. Data logging
+Minimum fields
  - Timestamp
  - Test name
- - Motor ID
+ - Joint name and motor ID
  - Target position
- - Actual position
+ - Actual encoder position
  - Target speed
- - Actual speed
- - Motor current or torque
+ - Actual speed if available
+ - Current or torque feedback
  - Bus voltage
  - Motor temperature
  - Driver error flags
  - CAN error count
- - FSR raw value
- - FSR filtered value
+ - FSR raw and filtered values if mounted
 
 Derived values
  - Position error
  - Peak current
- - Maximum overshoot
+ - Overshoot
  - Settling time
- - Average cycle time
- - Maximum temperature rise
+ - Cycle time
+ - Temperature rise
 
-Storage
- - Log to serial during first tests
- - Save logs on PC when possible
- - Later save logs through web interface or LittleFS
- - Keep one log file per test run
+12. Acceptance criteria and stop conditions
+Acceptance criteria
+ - No short circuit or unexpected reset
+ - Stable controller power and motor supply voltage
+ - Stable CAN communication
+ - Correct motor direction
+ - Correct zero reference after calibration
+ - Encoder feedback remains inside software limits
+ - No mechanical collision
+ - Current and temperature remain within selected test limits
+ - FSR sensors respond consistently if used
 
-13. Acceptance criteria
-Electrical acceptance
- - No short circuit
- - Stable controller power
- - Stable motor supply voltage
- - No unexpected reset
- - CAN communication remains stable
-
-Motion acceptance
- - Motor moves in expected direction
- - Motor stops at commanded target
- - Position error remains within chosen tolerance
- - No mechanical collision occurs
- - Software limits stop motion correctly
-
-Thermal acceptance
- - Motor temperature remains within safe range
- - Driver temperature remains within safe range
- - No connector or cable overheats
-
-Sensor acceptance
- - FSR values respond to pressure
- - FSR values are stable enough for monitoring
- - Contact threshold can be detected reliably
-
-14. Stop conditions
-Immediate stop
+Immediate stop conditions
  - Emergency stop pressed
  - Unexpected motion direction
- - Mechanical collision
+ - Mechanical collision or binding
  - Excessive current
  - Excessive temperature
  - CAN feedback lost
  - Encoder value outside safe range
- - Power supply voltage drops too much
+ - Supply voltage drops too much
+ - Unusual noise or loose mechanical connection
 
-Manual inspection required
- - Cable movement near joints
- - Unusual noise
- - Loose mechanical connection
- - Sensor value stuck or saturated
- - Repeated CAN errors
-
-15. Test progression
+13. Recommended test progression
 Stage 1
- - Power and communication only
+ - Power and CAN communication only
  - No motor movement
 
 Stage 2
+ - Encoder readback and Set Origin validation
+ - One joint at a time
+
+Stage 3
  - Single motor small-angle tests
  - No mannequin
 
-Stage 3
- - Simulation 07 knee-only movement
- - Low speed and low angle
-
 Stage 4
- - Simulation 06 hip and knee movement
+ - Simulation 07 knee-only motion
  - Low speed and low angle
 
 Stage 5
- - Mannequin-mounted repeated cycles
- - Moderate angle and controlled speed
+ - Simulation 06 hip and knee motion
+ - Low speed and low angle
 
 Stage 6
- - Add FSR monitoring
- - Compare motion and pressure data
+ - Mannequin-mounted repeated cycles
+ - Moderate speed and angle only after previous stages pass
 
 Stage 7
+ - Add FSR monitoring
+ - Compare pressure/contact data with movement
+
+Stage 8
  - Add ankle movement after hip and knee are validated
