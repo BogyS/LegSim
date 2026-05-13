@@ -135,11 +135,6 @@ MIT mode
  - Useful for softer tracking and impedance-like behavior
  - Good for later experiments with compliant movement
  - Requires careful tuning of kp, kd, and torque limits
-
-Initial control recommendation
- - Use small angles first
- - Use low speed and conservative gains
- - Test one motor at a time
  - Compare commanded angles with encoder feedback
 
 7. Firmware structure
@@ -162,7 +157,6 @@ Motor configuration
 
 Motion layer
  - Generates target joint angles
- - Converts degrees to radians
  - Applies zero offsets and sign corrections
  - Enforces position and speed limits
 
