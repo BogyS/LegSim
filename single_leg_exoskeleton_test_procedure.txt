@@ -1,5 +1,5 @@
 1. Purpose and scope
-This procedure validates one exoskeleton leg in a controlled bench setup before any human use.
+This procedure validates one exoskeleton leg in a controlled bench setup.
 The goal is to verify power, CAN communication, encoder feedback, joint zero references, angle limits, current consumption, forces, pressure sensors, and safe stop behavior.
 
 Scope
@@ -51,7 +51,6 @@ Measurement equipment
 
 Sensor equipment
  - FSR402 pressure sensors
- - Known resistors for voltage divider tests
  - Breadboard or small test PCB
  - Optional ESP32-S3 Super Mini foot sensor node
 
