@@ -222,9 +222,9 @@ Shared properties
  - Foot geometry with ankle offset
  - No dynamics or force simulation
 
-10. Next implementation steps
+10. Implementation
 Target hardware
- - Main controller can be ESP32-SE or ESP32-S3 Super Mini
+ - Main controller can be ESP32-S3 or ESP32-S3 Super Mini
  - ESP32-S3 Super Mini is a good compact controller option
  - Board choice should be hidden behind a small board configuration layer
  - Board configuration should define CAN TX pin, CAN RX pin, status LED, buttons, and ADC pins
@@ -235,8 +235,7 @@ CAN interface
  - SN65HVD230 works at 3.3 V logic level
  - ESP32 internal TWAI controller connects to SN65HVD230 TXD and RXD
  - SN65HVD230 CANH and CANL connect to the Cubemars CAN bus
- - CAN termination must be handled at the bus ends
- - Do not place 120 ohm termination on every node
+ - CAN termination (120 ohm) must be handled at the bus ends
 
 Motor set
  - Hip motor is Cubemars AK80-64 KV80
@@ -277,7 +276,6 @@ Demo target
  - Compliance with a human user is not the first requirement
 
 Firmware mapping
- - Convert degrees to radians for Cubemars commands
  - Define motor zero positions for hip, knee, and ankle
  - Define sign conventions for all motors
  - Add mechanical joint limits
@@ -319,14 +317,7 @@ Preferred FSR direction
  - CAN is preferred when FSR data is needed by the main controller
  - ESP-NOW is possible when reducing wires is more important than deterministic timing
  - A separate web server is useful for debugging and calibration
- - Direct analog wiring from all FSR sensors to the hip board is not preferred
-
-Rejected or weak FSR option
- - Reading all FSR sensors directly on the hip controller is not considered feasible
- - It requires too many moving analog wires
- - Long analog lines are more exposed to noise
- - Moving cables and connectors increase mechanical failure risk
- - The design is less modular and harder to expand
+ - Reading all FSR sensors directly on the hip controller is not considered feasible, it requires too many moving analog wires
 
 Safety
  - Start with small angles and low stiffness
@@ -352,10 +343,8 @@ Testing order
  - Add multi-motor synchronized motion after individual joints are validated
 
 Open decisions
- - Final main board choice: ESP32-SE or ESP32-S3 Super Mini
- - Final CAN pin mapping
+ - Final main board choice: ESP32-S3 or others
  - Final CAN IDs for hip, knee, and ankle motors
- - Whether foot FSR node communicates through CAN or ESP-NOW
- - Whether foot FSR node also hosts a local web server
- - Whether first demo uses Servo position-velocity mode or MIT mode
+ - Whether foot FSR node communicates through CAN or ESP-NOW or a local web server
+ - Whether demo uses Servo position-velocity mode or MIT mode
  - Final kp, kd, speed, and torque limits per joint
