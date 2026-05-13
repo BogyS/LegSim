@@ -1,0 +1,327 @@
+1. Project overview
+Purpose
+ - Build a lower-limb exoskeleton demonstrator
+ - Mount the exoskeleton on a mannequin
+ - Demonstrate controlled hip, knee, and ankle movements
+ - Use web simulations to define and validate motion references
+ - Use embedded firmware to command Cubemars actuators
+
+Initial focus
+ - Repeatable demonstration movements
+ - Clear joint limits
+ - Safe startup and shutdown
+ - Motor feedback monitoring
+ - Foot pressure monitoring
+
+Not the initial focus
+ - Human assistance
+ - Real-time balance recovery
+ - Full dynamic walking control
+ - Direct AI torque control
+
+2. System architecture
+Main components
+ - Web simulation interface
+ - ESP32-S3 based controller
+ - SN65HVD230 CAN transceiver
+ - Cubemars actuators
+ - Optional foot sensor node
+ - FSR402 pressure sensors
+
+Controller options
+ - ESP32-S3
+ - ESP32-S3 Super Mini
+
+Communication
+ - Main motor bus uses CAN through SN65HVD230
+ - Motor control uses Cubemars CAN protocol
+ - Foot sensor node can communicate through CAN or ESP-NOW
+ - A foot sensor web server can be used for calibration and diagnostics
+
+Data flow
+ - Web interface defines motion parameters
+ - Firmware converts motion parameters into joint references
+ - Controller sends motor commands over CAN
+ - Motors return position, velocity, torque, temperature, and error feedback
+ - FSR sensors provide pressure and contact information
+
+3. Hardware platform
+Main controller
+ - ESP32-S3 or ESP32-S3 Super Mini
+ - Uses internal TWAI peripheral for CAN controller functionality
+ - Requires external CAN transceiver
+ - Runs web server and motion-control firmware
+
+CAN transceiver
+ - SN65HVD230
+ - 3.3 V logic level
+ - Connects ESP32 TWAI TX and RX to CANH and CANL
+ - Requires correct CAN bus termination
+
+Actuators
+ - Hip motor: Cubemars AK80-64 KV80
+ - Knee motor: Cubemars AK45-36 KV80
+ - Ankle motor: Cubemars AK45-36 KV80
+
+Foot pressure sensors
+ - One or more FSR402 sensors can be mounted in the foot
+ - Sensors can detect contact and pressure distribution
+ - Sensor values can be logged and displayed
+
+4. Mechanical model
+Segments
+ - L1 represents the thigh
+ - L2 represents the shank
+ - Foot geometry includes ankle-to-heel and ankle-to-toe distances
+
+Joints
+ - Hip joint controls thigh orientation
+ - Knee joint controls shank orientation relative to thigh
+ - Ankle joint can control foot orientation in later versions
+
+Coordinate conventions
+ - Motion is modeled in a 2D sagittal plane for simulations 06 and 07
+ - X axis represents horizontal displacement
+ - Y axis represents vertical position
+ - Angles are expressed in degrees in the web interface
+ - Angles are converted to radians for motor commands
+
+Model assumptions
+ - Current simulations are kinematic
+ - Mass and inertia are not modeled
+ - Contact forces are not modeled
+ - The mannequin is treated as a fixed support
+
+5. Motion model
+Shared motion generation
+ - Motion uses a normalized cycle value from 0 to 1
+ - The cycle rises to maximum movement and returns to zero
+ - Smoothstep is used to avoid abrupt start and stop
+
+Smoothstep envelope
+ - mirrorCycle(t) equals 2t for the first half of the cycle
+ - mirrorCycle(t) equals 2 - 2t for the second half
+ - smoothstep(x) equals x * x * (3 - 2 * x)
+
+Simulation 06 motion
+ - Represents lying knee flexion
+ - Hip angle changes over the cycle
+ - Knee angle is derived from hip angle
+ - Knee constraint can be -2, -1, or 0 times hip angle
+ - Foot remains perpendicular to the shank
+
+Simulation 07 motion
+ - Represents seated knee extension
+ - Hip and thigh are fixed
+ - Only the knee angle changes
+ - Foot remains perpendicular to the shank
+ - Seat height is configurable
+
+6. Control strategy
+Reference generation
+ - Web simulations generate joint angle references
+ - Firmware can reproduce the same references on the controller
+ - Position references are generated at a fixed update rate
+ - Movement speed is controlled by trajectory duration
+
+Servo position-velocity mode
+ - Useful for prescribed demonstration movements
+ - Position and speed can be commanded directly
+ - Good for repeatable motion on a mannequin
+ - Easier to reason about for first hardware demonstrations
+
+MIT mode
+ - Uses position, velocity, stiffness, damping, and torque feed-forward
+ - Useful for softer tracking and impedance-like behavior
+ - Good for later experiments with compliant movement
+ - Requires careful tuning of kp, kd, and torque limits
+
+Initial control recommendation
+ - Use small angles first
+ - Use low speed and conservative gains
+ - Test one motor at a time
+ - Compare commanded angles with encoder feedback
+
+7. Firmware structure
+Board configuration
+ - Define board type
+ - Define CAN TX and RX pins
+ - Define status LEDs and buttons
+ - Define ADC pins for sensors if used locally
+
+Motor configuration
+ - Define joint name
+ - Define motor model
+ - Define CAN ID
+ - Define zero offset
+ - Define mechanical sign
+ - Define position limits
+ - Define speed limits
+ - Define torque or current limits
+ - Define default control gains
+
+Motion layer
+ - Generates target joint angles
+ - Converts degrees to radians
+ - Applies zero offsets and sign corrections
+ - Enforces position and speed limits
+
+Motor communication layer
+ - Packs motor commands
+ - Sends CAN frames
+ - Receives feedback frames
+ - Detects communication timeouts
+ - Reports errors to the web interface
+
+8. Sensor integration
+FSR402 usage
+ - Measure pressure under the foot
+ - Detect contact or no contact
+ - Estimate pressure distribution
+ - Monitor loading during demonstrations
+
+Foot sensor node options
+ - ESP32-S3 Super Mini mounted in the foot
+ - CAN connection to the main controller
+ - ESP-NOW wireless link to the main controller
+ - Separate web server for calibration and diagnostics
+
+Preferred approach
+ - Use a local foot node when multiple FSR sensors are installed
+ - Prefer CAN when pressure data is needed by the main controller
+ - Use a web server only for calibration or diagnostics
+ - Avoid long analog wiring from foot sensors to the hip controller
+
+Sensor processing
+ - Read raw ADC values
+ - Apply filtering
+ - Apply calibration
+ - Compute contact state
+ - Log raw and processed values
+
+9. Safety layer
+Startup behavior
+ - Boot in disabled state
+ - Require explicit enable before motor commands
+ - Read motor feedback before movement
+ - Confirm motor IDs before sending commands
+
+Motion limits
+ - Enforce joint position limits
+ - Enforce speed limits
+ - Enforce torque or current limits
+ - Reject commands outside allowed range
+
+Fault handling
+ - Stop motion if motor feedback is missing
+ - Stop motion if CAN errors exceed threshold
+ - Stop motion on emergency stop
+ - Stop motion if sensor values exceed defined limits
+ - Provide clear error state in web interface
+
+Testing safety
+ - Start with the exoskeleton unloaded
+ - Test one actuator at a time
+ - Use small movements first
+ - Increase speed and angle only after validation
+
+10. Validation plan
+Software validation
+ - Verify web simulation motion visually
+ - Verify angle values from the plotted curves
+ - Verify coordinate conventions and signs
+ - Verify that reference trajectories are smooth
+
+Motor validation
+ - Test CAN communication with one motor
+ - Enter motor mode and read feedback
+ - Reproduce known CubeMars application commands
+ - Test small position movements
+ - Test speed limits
+ - Test stop behavior
+
+Simulation 07 validation
+ - Validate knee-only seated movement first
+ - Compare target knee angle with motor encoder angle
+ - Confirm that hip remains fixed
+ - Confirm that motion direction matches the simulation
+
+Simulation 06 validation
+ - Validate hip motor direction
+ - Validate knee motor direction
+ - Validate the selected knee constraint factor
+ - Compare both target angles with motor feedback
+
+Sensor validation
+ - Read each FSR402 sensor independently
+ - Record raw ADC values with no load
+ - Record raw ADC values under known load
+ - Set contact thresholds
+ - Display live values in the web interface
+
+11. Measurements
+Motion metrics
+ - Position tracking error
+ - Maximum overshoot
+ - Settling time
+ - Repeatability over multiple cycles
+ - Motor temperature
+ - CAN error count
+
+Sensor metrics
+ - Raw ADC value
+ - Filtered pressure value
+ - Contact state
+ - Sensor drift
+ - Communication latency
+
+Demo metrics
+ - Successful repeated cycles
+ - Smoothness of visible movement
+ - Time to complete a movement
+ - Fault-free runtime
+ - Manual stop response time
+
+12. Limitations
+Current model limitations
+ - Simulations 06 and 07 are kinematic only
+ - No mass or inertia is modeled
+ - No physical contact force is modeled
+ - No real balance control is included
+ - The mannequin does not represent human interaction forces
+
+Hardware limitations
+ - ESP32-S3 is suitable for low-level control and web interface
+ - Complex model-based control may need a more capable processor
+ - Wireless sensor links may introduce latency and packet loss
+ - FSR sensors require calibration and are not precise force sensors
+
+Control limitations
+ - Servo mode gives prescribed motion but limited compliance
+ - MIT mode gives softer behavior but needs tuning
+ - Current references are predefined, not adaptive
+
+13. Future work
+Mechanical expansion
+ - Add ankle actuation to the simulations
+ - Add both legs
+ - Add lateral degrees of freedom
+ - Add support for standing and stepping patterns
+
+Simulation expansion
+ - Build a physics model in MuJoCo
+ - Add mass, inertia, and joint limits
+ - Add contact models
+ - Add actuator models
+
+Control expansion
+ - Add state machine for movement phases
+ - Add closed-loop trajectory correction
+ - Add pressure-based contact detection
+ - Add adaptive motion parameters
+
+Data and learning
+ - Log motor and sensor data
+ - Compare expected and measured motion
+ - Use recorded data to tune gains
+ - Use AI only as a higher-level reference or correction layer
